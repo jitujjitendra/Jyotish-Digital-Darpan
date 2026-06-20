@@ -1,0 +1,12 @@
+{
+  "name": "jyotish-digital-darpan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local Jyotish Digital Darpan backend and astrology engine with no third-party APIs.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/engine.test.js"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,422 @@
+/* Main Stylesheet for Jyotish Digital Darpan */
+:root {
+  --primary: #7c3aed;
+  --primary-dark: #5b21b6;
+  --primary-light: #8b5cf6;
+  --text-light: #e5e7eb;
+  --text-dark: #1f2937;
+  --bg-dark: #0f0c1a;
+  --bg-darker: #090611;
+  --bg-light: #1e1b2e;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --border-radius: 0.5rem;
+}
+
+/* Base Styles */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-light);
+  overflow-x: hidden;
+  min-height: 100vh;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Cosmic Background */
+.cosmic-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+  background: radial-gradient(ellipse at bottom, var(--bg-darker) 0%, var(--bg-dark) 100%);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Stars Animation */
+.star {
+  position: absolute;
+  background-color: #fff;
+  border-radius: 50%;
+  animation: twinkle var(--duration) infinite ease-in-out;
+  opacity: 0;
+  will-change: opacity;
+  backface-visibility: hidden;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+
+/* Shooting Stars */
+.shooting-star {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #fff;
+  box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.8);
+  animation: shoot linear forwards;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+@keyframes shoot {
+  0% {
+    transform: translateX(0) translateY(0);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(1000px) translateY(300px);
+    opacity: 0;
+  }
+}
+
+/* Planets and Celestial Bodies */
+.planet {
+  position: absolute;
+  border-radius: 50%;
+  animation: orbit linear infinite;
+  transform-origin: center;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+@keyframes orbit {
+  from { transform: rotate(0deg) translateX(var(--distance)) rotate(0deg); }
+  to { transform: rotate(360deg) translateX(var(--distance)) rotate(-360deg); }
+}
+
+.sun {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  border-radius: 100%;
+  background: radial-gradient(circle at 30% 30%, #fff, #ffde00, #ff9900);
+  box-shadow: 0 0 50px #ff9900, 0 0 100px #ff990055;
+  animation: pulse 8s infinite alternate;
+  will-change: transform, box-shadow;
+  backface-visibility: hidden;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); box-shadow: 0 0 50px #ff9900, 0 0 100px #ff990055; }
+  50% { transform: scale(1.05); box-shadow: 0 0 70px #ff9900, 0 0 140px #ff990055; }
+  100% { transform: scale(1); box-shadow: 0 0 50px #ff9900, 0 0 100px #ff990055; }
+}
+
+/* Milky Way */
+.milky-way {
+  position: absolute;
+  width: 200%;
+  height: 300px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(138, 43, 226, 0.05) 20%, 
+    rgba(75, 0, 130, 0.1) 50%, 
+    rgba(138, 43, 226, 0.05) 80%, 
+    transparent);
+  transform: rotate(-5deg);
+  animation: milky-way-move linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+@keyframes milky-way-move {
+  from { transform: rotate(-5deg) translateX(-50%); }
+  to { transform: rotate(-5deg) translateX(0); }
+}
+
+/* Galaxy */
+.galaxy {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, transparent 30%, rgba(156, 39, 176, 0.1) 70%);
+  opacity: 0.5;
+  animation: rotate-galaxy linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+@keyframes rotate-galaxy {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Layout Components */
+.content-wrapper {
+  position: relative;
+  z-index: 1;
+  background-color: rgba(15, 12, 26, 0.7);
+  min-height: 100vh;
+  overflow: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Header Styles */
+.header {
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(109, 40, 217, 0.3);
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 50;
+}
+
+.nav-link {
+  transition: all 0.3s ease;
+  backface-visibility: hidden;
+}
+
+.nav-link:hover {
+  color: var(--primary-light);
+  text-shadow: 0 0 10px rgba(217, 70, 239, 0.5);
+}
+
+/* Card Styles */
+.service-card {
+  background: rgba(39, 39, 42, 0.5);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(109, 40, 217, 0.3);
+  transition: all 0.3s ease;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.service-card:hover {
+  transform: translateY(-5px) translateZ(0);
+  border-color: rgba(168, 85, 247, 0.6);
+  box-shadow: 0 10px 25px rgba(124, 58, 237, 0.2);
+}
+
+.zodiac-sign {
+  transition: all 0.3s ease;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.zodiac-sign:hover {
+  transform: scale(1.1) translateZ(0);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.blog-card {
+  transition: all 0.3s ease;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.blog-card:hover {
+  transform: translateY(-5px) scale(1.02) translateZ(0);
+  box-shadow: 0 10px 20px rgba(156, 39, 176, 0.3);
+}
+
+/* Zodiac Circle */
+.zodiac-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 30%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+  font-size: 32px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid;
+  transition: all 0.3s ease;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Form Elements */
+input, select, textarea {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: var(--border-radius);
+  transition: all 0.3s ease;
+  backface-visibility: hidden;
+}
+
+select option {
+  background-color: #ffffff;
+  color: #111827;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.3);
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.3s ease;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-2px) translateZ(0);
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+}
+
+.btn-outline {
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  background-color: transparent;
+}
+
+.btn-outline:hover {
+  background-color: rgba(124, 58, 237, 0.1);
+}
+
+/* Responsive Grid */
+.grid-container {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .grid-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  /* Reduce animations for mobile */
+  .planet, .galaxy, .milky-way {
+    animation-duration: calc(var(--original-duration) * 1.5) !important;
+  }
+  
+  /* Simplify background for mobile */
+  .cosmic-bg {
+    background: var(--bg-dark);
+  }
+  
+  /* Reduce number of animated elements */
+  .star, .shooting-star {
+    display: none;
+  }
+  
+  /* Improve touch scrolling */
+  body {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    height: 100%;
+  }
+  
+  .content-wrapper {
+    overflow: visible;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Optimize card layouts */
+  .service-card, .zodiac-sign, .blog-card {
+    transform: none !important;
+  }
+  
+  .service-card:hover, .zodiac-sign:hover, .blog-card:hover {
+    transform: none !important;
+  }
+  
+  /* Adjust header for mobile */
+  .header {
+    padding: 1rem;
+  }
+  
+  .nav-link {
+    font-size: 0.9rem;
+  }
+}
+
+/* Utility Classes */
+.text-center { text-align: center; }
+.text-purple { color: var(--primary); }
+.bg-dark { background-color: var(--bg-dark); }
+.p-4 { padding: 1rem; }
+.mt-4 { margin-top: 1rem; }
+.rounded-lg { border-radius: var(--border-radius); }
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+  backface-visibility: hidden;
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  backface-visibility: hidden;
+}
+
+.modal.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal-content {
+  background-color: var(--bg-light);
+  border-radius: var(--border-radius);
+  width: 90%;
+  max-width: 500px;
+  transform: translateY(-20px);
+  transition: transform 0.3s ease;
+  backface-visibility: hidden;
+}
+
+.modal.active .modal-content {
+  transform: translateY(0);
+}

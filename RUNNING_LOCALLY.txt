@@ -1,0 +1,13 @@
+Jyotish Digital Darpan - local running options
+
+Option 1: Direct file mode
+- Open index.html directly in the browser.
+- This mode works without Node server for Kundli, Daily Horoscope, Panchang, Matchmaking, Talk to Astrologer, Blog and Contact response.
+- Contact messages will not be saved to disk in this mode.
+
+Option 2: Local server mode
+- Double-click start-jyotish.bat.
+- It opens http://localhost:3000 and keeps the server in a visible window.
+- Keep that window open while checking the site.
+
+If the browser shows old UI, press Ctrl+F5 once to hard refresh.

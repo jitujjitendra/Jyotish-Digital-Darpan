@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Birth Chart Generator</title>
+
+<link rel="stylesheet" href="style.css">
+
+<style>
+
+.container{
+max-width:600px;
+margin:auto;
+padding:40px;
+text-align:center;
+}
+
+input,button{
+width:100%;
+padding:12px;
+margin:10px 0;
+border-radius:6px;
+border:none;
+}
+
+button{
+background:#7c3aed;
+color:white;
+cursor:pointer;
+}
+
+button:hover{
+background:#5b21b6;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Birth Chart Generator</h1>
+
+<p>Enter your birth details</p>
+
+<form id="kundliForm">
+
+<input type="text" placeholder="Full Name" required>
+
+<input type="date" required>
+
+<input type="time" required>
+
+<input type="text" placeholder="Birth Place" required>
+
+<button type="submit">Generate Birth Chart</button>
+
+</form>
+
+<div id="result" style="margin-top:30px;"></div>
+
+</div>
+
+<script src="astro-engine.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

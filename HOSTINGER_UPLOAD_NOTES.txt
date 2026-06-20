@@ -1,0 +1,30 @@
+Hostinger upload notes
+
+This website is safe for static hosting.
+
+Upload these main files/folders to public_html:
+- index.html
+- birth-chart.html
+- style.css
+- astro-engine.js
+- app.js
+- package.json, server.js and tests are optional unless Hostinger Node.js hosting is enabled.
+
+How options will work on normal Hostinger shared hosting:
+- Birth Chart works in browser using astro-engine.js.
+- Daily Horoscope works in browser using astro-engine.js.
+- Panchang works in browser using astro-engine.js.
+- Kundli Milan works in browser using astro-engine.js.
+- Talk to Astrologer works in browser using astro-engine.js.
+- Blog/Read More works in browser using astro-engine.js.
+- Contact form shows received response, but saving contact messages needs backend/database later.
+
+If Hostinger Node.js hosting is enabled:
+- server.js can provide /api routes.
+- Frontend will use /api routes when available.
+- If /api routes are not available, frontend automatically falls back to browser engine.
+
+Important:
+- Keep astro-engine.js and app.js in the same folder as index.html.
+- After upload, hard refresh once with Ctrl+F5.
+- If a city/place is missing from suggestions, add it to CITY_DB in astro-engine.js or import a bigger free city database later.
