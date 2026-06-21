@@ -679,3 +679,66 @@ charts.forEach(function(c) {
 assert.ok(totalYogas > 0, "At least some charts should have detectable yogas");
 
 console.log("All Yoga Detection tests passed.");
+
+// ========== HINDI i18n TESTS ==========
+
+var i18n = require("../i18n");
+
+// Test 1: i18n module exports expected interface
+assert.ok(i18n.t, "i18n should export t function");
+assert.ok(i18n.setLang, "i18n should export setLang function");
+assert.ok(i18n.getLang, "i18n should export getLang function");
+assert.ok(i18n.strings, "i18n should export strings object");
+assert.ok(i18n.strings.en, "strings should have en");
+assert.ok(i18n.strings.hi, "strings should have hi");
+
+// Test 2: Default language is English
+i18n.setLang("en");
+assert.strictEqual(i18n.getLang(), "en", "Default language should be en");
+assert.strictEqual(i18n.t("nav.home"), "Home", "nav.home in English should be Home");
+
+// Test 3: Switching to Hindi works
+i18n.setLang("hi");
+assert.strictEqual(i18n.getLang(), "hi", "Language should switch to hi");
+assert.strictEqual(i18n.t("nav.home"), "\u0939\u094B\u092E", "nav.home in Hindi should be in Devanagari");
+
+// Test 4: All required translation groups exist in both languages
+var requiredKeys = [
+  "nav.home", "nav.kundli", "nav.horoscope", "nav.matchmaking", "nav.panchang", "nav.contact",
+  "form.name", "form.date", "form.time", "form.place", "form.submit",
+  "planets.Sun", "planets.Moon", "planets.Mars", "planets.Mercury", "planets.Jupiter",
+  "planets.Venus", "planets.Saturn", "planets.Rahu", "planets.Ketu",
+  "signs.Aries", "signs.Taurus", "signs.Gemini", "signs.Cancer", "signs.Leo", "signs.Virgo",
+  "signs.Libra", "signs.Scorpio", "signs.Sagittarius", "signs.Capricorn", "signs.Aquarius", "signs.Pisces",
+  "charts.d1", "charts.d2", "charts.d3", "charts.d9", "charts.d10",
+  "yoga.rajyoga", "yoga.gajakesari", "yoga.budhaditya",
+  "dasha.mahadasha", "dasha.antardasha", "dasha.pratyantar",
+  "match.varna", "match.vashya", "match.tara", "match.yoni", "match.grahaMaitri",
+  "match.gana", "match.bhakoot", "match.nadi",
+  "common.disclaimer", "common.loading", "common.error", "common.result"
+];
+
+requiredKeys.forEach(function(key) {
+  assert.ok(i18n.strings.en[key] !== undefined, "English should have key: " + key);
+  assert.ok(i18n.strings.hi[key] !== undefined, "Hindi should have key: " + key);
+});
+
+// Test 5: Hindi translations are in Devanagari script
+i18n.setLang("hi");
+var hindiHome = i18n.t("nav.home");
+assert.ok(/[\u0900-\u097F]/.test(hindiHome),
+  "Hindi translation should contain Devanagari characters, got: " + hindiHome);
+
+// Test 6: Fallback to English for unknown keys
+assert.strictEqual(i18n.t("nonexistent.key"), "nonexistent.key",
+  "Unknown key should return the key itself as fallback");
+
+// Test 7: Planet names in Hindi are Devanagari
+var hindiSun = i18n.t("planets.Sun");
+assert.ok(/[\u0900-\u097F]/.test(hindiSun),
+  "Hindi Sun should be Devanagari, got: " + hindiSun);
+
+// Reset to English for other tests
+i18n.setLang("en");
+
+console.log("All Hindi i18n tests passed.");

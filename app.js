@@ -2,6 +2,7 @@
   "use strict";
 
   const engine = window.JyotishEngine;
+  const i18n = window.JyotishI18n || null;
   const signs = engine ? engine.constants.signs : [
     "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
     "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
@@ -15,6 +16,51 @@
     "Pune", "Jaipur", "Lucknow", "Pilibhit, Uttar Pradesh", "Pithoragarh, Uttarakhand",
     "Pinjore, Haryana", "Pimpri-Chinchwad, Maharashtra", "Puri, Odisha"
   ];
+
+  function tt(key) {
+    return i18n ? i18n.t(key) : key;
+  }
+
+  function toggleLanguage() {
+    if (!i18n) return;
+    var newLang = i18n.getLang() === "en" ? "hi" : "en";
+    i18n.setLang(newLang);
+    // Update the Hindi/English toggle button text
+    var hindiButtons = byText("button", newLang === "hi" ? "\u0939\u093F\u0902\u0926\u0940" : "English");
+    hindiButtons.forEach(function(btn) {
+      btn.textContent = tt("common.langSwitch");
+    });
+    // Also look for the English button text when switching back
+    var altButtons = byText("button", newLang === "en" ? "\u0939\u093F\u0902\u0926\u0940" : "English");
+    altButtons.concat(hindiButtons).forEach(function(btn) {
+      btn.textContent = tt("common.langSwitch");
+    });
+    // Update nav links text if present
+    updateNavText();
+  }
+
+  function updateNavText() {
+    if (!i18n) return;
+    // Update common nav text elements
+    var navMappings = [
+      { text: ["Home", "\u0939\u094B\u092E"], key: "nav.home" },
+      { text: ["Birth Chart", "\u091C\u0928\u094D\u092E \u0915\u0941\u0923\u094D\u0921\u0932\u0940"], key: "nav.kundli" },
+      { text: ["Daily Horoscope", "\u0926\u0948\u0928\u093F\u0915 \u0930\u093E\u0936\u093F\u092B\u0932"], key: "nav.horoscope" },
+      { text: ["Kundli Milan", "\u0915\u0941\u0923\u094D\u0921\u0932\u0940 \u092E\u093F\u0932\u093E\u0928"], key: "nav.matchmaking" },
+      { text: ["Panchang", "\u092A\u0902\u091A\u093E\u0902\u0917"], key: "nav.panchang" },
+      { text: ["Contact Us", "\u0938\u0902\u092A\u0930\u094D\u0915 \u0915\u0930\u0947\u0902"], key: "nav.contact" }
+    ];
+    navMappings.forEach(function(mapping) {
+      mapping.text.forEach(function(txt) {
+        var links = Array.from(document.querySelectorAll("a, button")).filter(function(el) {
+          return el.textContent.trim() === txt;
+        });
+        links.forEach(function(el) {
+          el.textContent = tt(mapping.key);
+        });
+      });
+    });
+  }
 
   function byText(selector, text) {
     const target = text.toLowerCase();
@@ -55,7 +101,7 @@
 
   function field(name, label, type, value) {
     return `
-      <label style="display:block;margin:10px 0 4px;color:#c4b5fd;font-size:13px;">${label}</label>
+      <label style="display:block;margin:10px 0 4px;color:#c4b5fd;font-size:13px;">${escapeHtml(label)}</label>
       <input name="${name}" type="${type || "text"}" value="${escapeHtml(value || "")}" required
         style="width:100%;box-sizing:border-box;margin:0 0 8px;">
     `;
@@ -63,7 +109,7 @@
 
   function placeField(name, label, value) {
     return `
-      <label style="display:block;margin:10px 0 4px;color:#c4b5fd;font-size:13px;">${label}</label>
+      <label style="display:block;margin:10px 0 4px;color:#c4b5fd;font-size:13px;">${escapeHtml(label)}</label>
       <input name="${name}" type="text" value="${escapeHtml(value || "")}" required list="jyotishPlaceList" autocomplete="off" data-place-autocomplete="true"
         style="width:100%;box-sizing:border-box;margin:0 0 8px;">
     `;
@@ -114,7 +160,7 @@
       <div class="modal-content" style="max-width:780px;max-height:86vh;overflow:auto;padding:24px;border:1px solid rgba(168,85,247,.45);box-shadow:0 20px 80px rgba(0,0,0,.55);">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px;">
           <h2 id="jyotishModalTitle" style="margin:0;color:#fff;font-size:24px;font-weight:700;"></h2>
-          <button type="button" data-close-modal style="width:auto;margin:0;padding:8px 12px;border-radius:8px;background:#111827;color:#e5e7eb;">Close</button>
+          <button type="button" data-close-modal style="width:auto;margin:0;padding:8px 12px;border-radius:8px;background:#111827;color:#e5e7eb;">${tt("common.close")}</button>
         </div>
         <div id="jyotishModalBody"></div>
       </div>
@@ -160,13 +206,13 @@
   }
 
   function showBirthChartForm() {
-    openModal("Birth Chart Generator", `
+    openModal(tt("nav.kundli"), `
       <form id="modalKundliForm">
-        ${field("name", "Full Name", "text")}
-        ${field("date", "Birth Date", "date")}
-        ${field("time", "Birth Time", "time")}
-        ${placeField("place", "Birth Place", "Delhi")}
-        ${buttonHtml("Generate Birth Chart")}
+        ${field("name", tt("form.name"), "text")}
+        ${field("date", tt("form.date"), "date")}
+        ${field("time", tt("form.time"), "time")}
+        ${placeField("place", tt("form.place"), "Delhi")}
+        ${buttonHtml(tt("form.generate"))}
       </form>
       <div id="modalResult" style="margin-top:18px;"></div>
     `);
@@ -191,17 +237,17 @@
   function renderKundli(report) {
     return `
       <div style="text-align:left;color:#e5e7eb;">
-        <h3 style="font-size:20px;font-weight:700;margin:0 0 8px;">${escapeHtml(report.name)} - Janm Kundli</h3>
+        <h3 style="font-size:20px;font-weight:700;margin:0 0 8px;">${escapeHtml(report.name)} - ${tt("nav.kundli")}</h3>
         <p style="color:#cbd5e1;margin:0 0 12px;">${escapeHtml(report.input.date)} ${escapeHtml(report.input.time)}, ${escapeHtml(report.input.place)} (${escapeHtml(report.input.timezone)})</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:14px 0;">
-          ${infoBox("Lagna", `${report.ascendant.symbol} ${report.ascendant.rashi}`, report.ascendant.degree)}
-          ${infoBox("Moon Sign", `${report.moonSign.symbol} ${report.moonSign.rashi}`, `${report.moonSign.nakshatra} Pada ${report.moonSign.pada}`)}
-          ${infoBox("Sun Sign", `${report.sunSign.symbol} ${report.sunSign.rashi}`, "Sidereal")}
-          ${infoBox("Dasha", report.dasha.activeMahadasha, `Birth lord ${report.dasha.birthNakshatraLord}`)}
+          ${infoBox(tt("common.lagna"), `${report.ascendant.symbol} ${report.ascendant.rashi}`, report.ascendant.degree)}
+          ${infoBox(tt("planets.Moon") + " " + tt("common.rashi"), `${report.moonSign.symbol} ${report.moonSign.rashi}`, `${report.moonSign.nakshatra} Pada ${report.moonSign.pada}`)}
+          ${infoBox(tt("planets.Sun") + " " + tt("common.rashi"), `${report.sunSign.symbol} ${report.sunSign.rashi}`, "Sidereal")}
+          ${infoBox(tt("dasha.mahadasha"), report.dasha.activeMahadasha, `Birth lord ${report.dasha.birthNakshatraLord}`)}
         </div>
-        <h4 style="color:#c4b5fd;margin:16px 0 8px;">Planetary Positions</h4>
+        <h4 style="color:#c4b5fd;margin:16px 0 8px;">${tt("common.planetaryPositions")}</h4>
         ${renderPlanetTable(report.planets)}
-        <h4 style="color:#c4b5fd;margin:16px 0 8px;">Reading</h4>
+        <h4 style="color:#c4b5fd;margin:16px 0 8px;">${tt("common.reading")}</h4>
         <ul style="padding-left:18px;margin:0;">
           ${report.summary.concat(report.houseHighlights || []).map(function (line) {
             return `<li style="margin:6px 0;">${escapeHtml(line)}</li>`;
@@ -228,11 +274,11 @@
       <div style="overflow:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead><tr style="color:#c4b5fd;border-bottom:1px solid rgba(255,255,255,.12);">
-            <th style="text-align:left;padding:8px;">Planet</th>
-            <th style="text-align:left;padding:8px;">Rashi</th>
-            <th style="text-align:left;padding:8px;">Degree</th>
-            <th style="text-align:left;padding:8px;">House</th>
-            <th style="text-align:left;padding:8px;">Nakshatra</th>
+            <th style="text-align:left;padding:8px;">${tt("common.planet")}</th>
+            <th style="text-align:left;padding:8px;">${tt("common.rashi")}</th>
+            <th style="text-align:left;padding:8px;">${tt("common.degree")}</th>
+            <th style="text-align:left;padding:8px;">${tt("common.house")}</th>
+            <th style="text-align:left;padding:8px;">${tt("common.nakshatra")}</th>
           </tr></thead>
           <tbody>
             ${planets.map(function (planet) {
@@ -251,12 +297,12 @@
   }
 
   function showHoroscopeForm(sign) {
-    openModal("Daily Horoscope", `
+    openModal(tt("nav.horoscope"), `
       <form id="dailyHoroscopeForm">
-        ${selectField("sign", "Zodiac Sign", signs)}
-        ${field("date", "Date", "date", today())}
-        ${placeField("place", "Place", "Delhi")}
-        ${buttonHtml("Read Horoscope")}
+        ${selectField("sign", tt("form.sign"), signs)}
+        ${field("date", tt("form.date"), "date", today())}
+        ${placeField("place", tt("form.place"), "Delhi")}
+        ${buttonHtml(tt("form.readHoroscope"))}
       </form>
       <div id="modalResult" style="margin-top:18px;"></div>
     `);
@@ -290,11 +336,11 @@
   }
 
   function showPanchangForm() {
-    openModal("Panchang", `
+    openModal(tt("nav.panchang"), `
       <form id="panchangForm">
-        ${field("date", "Date", "date", today())}
-        ${placeField("place", "Place", "Delhi")}
-        ${buttonHtml("View Panchang")}
+        ${field("date", tt("form.date"), "date", today())}
+        ${placeField("place", tt("form.place"), "Delhi")}
+        ${buttonHtml(tt("form.viewPanchang"))}
       </form>
       <div id="modalResult" style="margin-top:18px;"></div>
     `);
@@ -328,19 +374,19 @@
   }
 
   function showMatchForm() {
-    openModal("Kundli Milan", `
+    openModal(tt("nav.matchmaking"), `
       <form id="matchForm">
-        <h3 style="color:#c4b5fd;font-weight:700;">Person 1</h3>
-        ${field("p1name", "Name", "text")}
-        ${field("p1date", "Birth Date", "date")}
-        ${field("p1time", "Birth Time", "time")}
-        ${placeField("p1place", "Birth Place", "Delhi")}
-        <h3 style="color:#c4b5fd;font-weight:700;margin-top:16px;">Person 2</h3>
-        ${field("p2name", "Name", "text")}
-        ${field("p2date", "Birth Date", "date")}
-        ${field("p2time", "Birth Time", "time")}
-        ${placeField("p2place", "Birth Place", "Mumbai")}
-        ${buttonHtml("Match Now")}
+        <h3 style="color:#c4b5fd;font-weight:700;">${tt("form.person1")}</h3>
+        ${field("p1name", tt("form.name"), "text")}
+        ${field("p1date", tt("form.date"), "date")}
+        ${field("p1time", tt("form.time"), "time")}
+        ${placeField("p1place", tt("form.place"), "Delhi")}
+        <h3 style="color:#c4b5fd;font-weight:700;margin-top:16px;">${tt("form.person2")}</h3>
+        ${field("p2name", tt("form.name"), "text")}
+        ${field("p2date", tt("form.date"), "date")}
+        ${field("p2time", tt("form.time"), "time")}
+        ${placeField("p2place", tt("form.place"), "Mumbai")}
+        ${buttonHtml(tt("form.matchNow"))}
       </form>
       <div id="modalResult" style="margin-top:18px;"></div>
     `);
@@ -380,12 +426,12 @@
   }
 
   function showAskForm() {
-    openModal("Talk to Astrologer", `
+    openModal(tt("nav.ask"), `
       <form id="askForm">
-        ${selectField("sign", "Zodiac Sign", signs)}
-        <label style="display:block;margin:10px 0 4px;color:#c4b5fd;font-size:13px;">Question</label>
+        ${selectField("sign", tt("form.sign"), signs)}
+        <label style="display:block;margin:10px 0 4px;color:#c4b5fd;font-size:13px;">${escapeHtml(tt("form.question"))}</label>
         <textarea name="question" rows="4" required style="width:100%;box-sizing:border-box;" placeholder="Career, marriage, finance ya kundli se related sawal likhein"></textarea>
-        ${buttonHtml("Ask")}
+        ${buttonHtml(tt("form.ask"))}
       </form>
       <div id="modalResult" style="margin-top:18px;"></div>
     `);
@@ -425,13 +471,13 @@
   }
 
   function showContactForm() {
-    openModal("Contact Us", `
+    openModal(tt("nav.contact"), `
       <form id="contactForm">
-        ${field("name", "Name", "text")}
-        ${field("email", "Email", "email")}
-        <label style="display:block;margin:10px 0 4px;color:#c4b5fd;font-size:13px;">Message</label>
+        ${field("name", tt("form.name"), "text")}
+        ${field("email", tt("form.email"), "email")}
+        <label style="display:block;margin:10px 0 4px;color:#c4b5fd;font-size:13px;">${escapeHtml(tt("form.message"))}</label>
         <textarea name="message" rows="4" required style="width:100%;box-sizing:border-box;"></textarea>
-        ${buttonHtml("Send Message")}
+        ${buttonHtml(tt("form.send"))}
       </form>
       <div id="modalResult" style="margin-top:18px;"></div>
     `);
@@ -448,7 +494,7 @@
   }
 
   function loadingText() {
-    return `<p style="color:#c4b5fd;">Calculating...</p>`;
+    return `<p style="color:#c4b5fd;">${escapeHtml(tt("common.loading"))}</p>`;
   }
 
   function wireHomePage() {
@@ -459,7 +505,7 @@
       { labels: ["Panchang", "View Panchang"], action: showPanchangForm },
       { labels: ["Talk to Astrologer"], action: showAskForm },
       { labels: ["Contact Us"], action: showContactForm },
-      { labels: ["हिंदी"], action: function () { openModal("हिंदी", "<p>Hindi mode active hai. Reports aur guidance Hinglish/Hindi style me generate honge.</p>"); } }
+      { labels: ["हिंदी", "English"], action: function () { toggleLanguage(); } }
     ];
 
     buttonActions.forEach(function (item) {
