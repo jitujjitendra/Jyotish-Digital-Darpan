@@ -682,37 +682,164 @@
     ];
   }
 
-  function currentDasha(moonLongitude, birthDate) {
-    const nak = nakshatraInfo(moonLongitude);
-    const lord = nak.lord;
-    const years = DASHA_YEARS[lord];
-    const balanceYears = (1 - nak.percent) * years;
-    const startIndex = DASHA_SEQUENCE.indexOf(lord);
-    const sequence = [];
-    let cursorYear = 0;
+  function addYearsToDate(date, years) {
+    var ms = date.getTime() + years * 365.2425 * 24 * 60 * 60 * 1000;
+    return new Date(ms);
+  }
 
-    for (let i = 0; i < 9; i += 1) {
-      const planet = DASHA_SEQUENCE[(startIndex + i) % DASHA_SEQUENCE.length];
-      const length = i === 0 ? balanceYears : DASHA_YEARS[planet];
-      sequence.push({
+  function formatDateISO(d) {
+    var y = d.getUTCFullYear();
+    var m = d.getUTCMonth() + 1;
+    var day = d.getUTCDate();
+    return y + "-" + pad2(m) + "-" + pad2(day);
+  }
+
+  function dashaSequenceFrom(startPlanet) {
+    var idx = DASHA_SEQUENCE.indexOf(startPlanet);
+    var seq = [];
+    for (var i = 0; i < 9; i++) {
+      seq.push(DASHA_SEQUENCE[(idx + i) % 9]);
+    }
+    return seq;
+  }
+
+  function currentDasha(moonLongitude, birthDate) {
+    var nak = nakshatraInfo(moonLongitude);
+    var lord = nak.lord;
+    var years = DASHA_YEARS[lord];
+    var balanceYears = (1 - nak.percent) * years;
+    var startIndex = DASHA_SEQUENCE.indexOf(lord);
+
+    // Build full 9 mahadasha sequence with actual dates
+    var birthMs = birthDate ? birthDate.getTime() : Date.now();
+    var birthD = new Date(birthMs);
+    var fullSequence = [];
+    var cursorDate = new Date(birthMs);
+
+    for (var i = 0; i < 9; i++) {
+      var planet = DASHA_SEQUENCE[(startIndex + i) % 9];
+      var length = (i === 0) ? balanceYears : DASHA_YEARS[planet];
+      var startDate = new Date(cursorDate.getTime());
+      var endDate = addYearsToDate(cursorDate, length);
+      fullSequence.push({
         planet: planet,
-        years: Number(length.toFixed(2)),
-        fromYear: Number(cursorYear.toFixed(2)),
-        toYear: Number((cursorYear + length).toFixed(2))
+        totalYears: Number(length.toFixed(4)),
+        startDate: formatDateISO(startDate),
+        endDate: formatDateISO(endDate)
       });
-      cursorYear += length;
+      cursorDate = endDate;
     }
 
-    const age = birthDate ? Math.max(0, (Date.now() - birthDate.getTime()) / (365.2425 * 24 * 60 * 60 * 1000)) : 0;
-    const active = sequence.find(function (item) {
-      return age >= item.fromYear && age < item.toYear;
-    }) || sequence[sequence.length - 1];
+    // Find active mahadasha based on current date
+    var now = new Date(Date.now());
+    var activeMD = null;
+    for (var m = 0; m < fullSequence.length; m++) {
+      var mdStart = new Date(fullSequence[m].startDate + "T00:00:00Z");
+      var mdEnd = new Date(fullSequence[m].endDate + "T00:00:00Z");
+      if (now >= mdStart && now < mdEnd) {
+        activeMD = fullSequence[m];
+        break;
+      }
+    }
+    if (!activeMD) activeMD = fullSequence[fullSequence.length - 1];
+
+    // Build antardasha sequence within the active mahadasha
+    var mdPlanet = activeMD.planet;
+    var mdYears = activeMD.totalYears;
+    var mdStartDate = new Date(activeMD.startDate + "T00:00:00Z");
+    var adSequence = dashaSequenceFrom(mdPlanet);
+    var antardashaList = [];
+    var adCursor = new Date(mdStartDate.getTime());
+
+    for (var a = 0; a < 9; a++) {
+      var adPlanet = adSequence[a];
+      var adYears = (mdYears * DASHA_YEARS[adPlanet]) / 120;
+      var adStart = new Date(adCursor.getTime());
+      var adEnd = addYearsToDate(adCursor, adYears);
+      antardashaList.push({
+        mahadasha: mdPlanet,
+        antardasha: adPlanet,
+        totalYears: Number(adYears.toFixed(4)),
+        from: formatDateISO(adStart),
+        to: formatDateISO(adEnd)
+      });
+      adCursor = adEnd;
+    }
+
+    // Find active antardasha
+    var activeAD = null;
+    for (var b = 0; b < antardashaList.length; b++) {
+      var aStart = new Date(antardashaList[b].from + "T00:00:00Z");
+      var aEnd = new Date(antardashaList[b].to + "T00:00:00Z");
+      if (now >= aStart && now < aEnd) {
+        activeAD = antardashaList[b];
+        break;
+      }
+    }
+    if (!activeAD) activeAD = antardashaList[antardashaList.length - 1];
+
+    // Build pratyantar dasha sequence within the active antardasha
+    var adActivePlanet = activeAD.antardasha;
+    var adActiveYears = activeAD.totalYears;
+    var adActiveStart = new Date(activeAD.from + "T00:00:00Z");
+    var pdSequence = dashaSequenceFrom(adActivePlanet);
+    var pratyantarList = [];
+    var pdCursor = new Date(adActiveStart.getTime());
+
+    for (var p = 0; p < 9; p++) {
+      var pdPlanet = pdSequence[p];
+      var pdYears = (adActiveYears * DASHA_YEARS[pdPlanet]) / 120;
+      var pdDays = pdYears * 365.2425;
+      var pdStart = new Date(pdCursor.getTime());
+      var pdEnd = addYearsToDate(pdCursor, pdYears);
+      pratyantarList.push({
+        planet: pdPlanet,
+        totalDays: Math.round(pdDays),
+        from: formatDateISO(pdStart),
+        to: formatDateISO(pdEnd)
+      });
+      pdCursor = pdEnd;
+    }
+
+    // Find active pratyantar
+    var activePD = null;
+    for (var c = 0; c < pratyantarList.length; c++) {
+      var pStart = new Date(pratyantarList[c].from + "T00:00:00Z");
+      var pEnd = new Date(pratyantarList[c].to + "T00:00:00Z");
+      if (now >= pStart && now < pEnd) {
+        activePD = pratyantarList[c];
+        break;
+      }
+    }
+    if (!activePD) activePD = pratyantarList[pratyantarList.length - 1];
 
     return {
       birthNakshatraLord: lord,
       balanceAtBirthYears: Number(balanceYears.toFixed(2)),
-      activeMahadasha: active.planet,
-      sequence: sequence.slice(0, 5)
+      activeMahadasha: activeMD.planet,
+      fullSequence: fullSequence,
+      active: {
+        mahadasha: {
+          planet: activeMD.planet,
+          startDate: activeMD.startDate,
+          endDate: activeMD.endDate,
+          totalYears: activeMD.totalYears
+        },
+        antardasha: {
+          planet: activeAD.antardasha,
+          startDate: activeAD.from,
+          endDate: activeAD.to,
+          totalYears: activeAD.totalYears
+        },
+        pratyantar: {
+          planet: activePD.planet,
+          startDate: activePD.from,
+          endDate: activePD.to,
+          totalDays: activePD.totalDays
+        },
+        sequence: antardashaList
+      },
+      sequence: fullSequence.slice(0, 5)
     };
   }
 

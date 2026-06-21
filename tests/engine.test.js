@@ -393,3 +393,94 @@ assert.ok(uniqueLagnas.length >= 2, "Different birth data should generally produ
 // This tests the core navamsa formula
 
 console.log("All Navamsa (D9) chart tests passed.");
+
+// ========== ANTARDASHA + PRATYANTAR DASHA TESTS ==========
+
+// Test 1: currentDasha returns fullSequence with 9 mahadashas
+var dashaTest = engine.generateKundli({
+  name: "Dasha Test",
+  date: "1990-01-15",
+  time: "08:30",
+  place: "Delhi"
+});
+var dasha = dashaTest.dasha;
+assert.ok(dasha.fullSequence, "Dasha should have fullSequence");
+assert.strictEqual(dasha.fullSequence.length, 9, "fullSequence should have 9 mahadashas");
+
+// Test 2: Each mahadasha has proper date fields
+dasha.fullSequence.forEach(function(md, idx) {
+  assert.ok(md.planet, "Mahadasha " + idx + " should have planet");
+  assert.ok(md.startDate, "Mahadasha " + idx + " should have startDate");
+  assert.ok(md.endDate, "Mahadasha " + idx + " should have endDate");
+  assert.ok(typeof md.totalYears === "number", "Mahadasha " + idx + " should have numeric totalYears");
+  // Validate date format YYYY-MM-DD
+  assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(md.startDate), "startDate should be YYYY-MM-DD format, got " + md.startDate);
+  assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(md.endDate), "endDate should be YYYY-MM-DD format, got " + md.endDate);
+});
+
+// Test 3: Active dasha object exists with proper structure
+assert.ok(dasha.active, "Dasha should have active object");
+assert.ok(dasha.active.mahadasha, "Active should have mahadasha");
+assert.ok(dasha.active.antardasha, "Active should have antardasha");
+assert.ok(dasha.active.pratyantar, "Active should have pratyantar");
+assert.ok(dasha.active.sequence, "Active should have sequence (antardasha list)");
+
+// Test 4: Active mahadasha has required fields
+assert.ok(dasha.active.mahadasha.planet, "Active mahadasha should have planet");
+assert.ok(dasha.active.mahadasha.startDate, "Active mahadasha should have startDate");
+assert.ok(dasha.active.mahadasha.endDate, "Active mahadasha should have endDate");
+assert.ok(typeof dasha.active.mahadasha.totalYears === "number", "Active mahadasha should have totalYears");
+
+// Test 5: Active antardasha has required fields
+assert.ok(dasha.active.antardasha.planet, "Active antardasha should have planet");
+assert.ok(dasha.active.antardasha.startDate, "Active antardasha should have startDate");
+assert.ok(dasha.active.antardasha.endDate, "Active antardasha should have endDate");
+assert.ok(typeof dasha.active.antardasha.totalYears === "number", "Active antardasha should have totalYears");
+
+// Test 6: Active pratyantar has required fields
+assert.ok(dasha.active.pratyantar.planet, "Active pratyantar should have planet");
+assert.ok(dasha.active.pratyantar.startDate, "Active pratyantar should have startDate");
+assert.ok(dasha.active.pratyantar.endDate, "Active pratyantar should have endDate");
+assert.ok(typeof dasha.active.pratyantar.totalDays === "number", "Active pratyantar should have totalDays");
+
+// Test 7: Antardasha sequence has 9 entries for current mahadasha
+assert.strictEqual(dasha.active.sequence.length, 9, "Antardasha sequence should have 9 entries");
+dasha.active.sequence.forEach(function(ad, idx) {
+  assert.ok(ad.mahadasha, "AD sequence " + idx + " should have mahadasha");
+  assert.ok(ad.antardasha, "AD sequence " + idx + " should have antardasha");
+  assert.ok(ad.from, "AD sequence " + idx + " should have from");
+  assert.ok(ad.to, "AD sequence " + idx + " should have to");
+  assert.ok(typeof ad.totalYears === "number", "AD sequence " + idx + " should have totalYears");
+});
+
+// Test 8: Antardasha durations sum up to mahadasha duration (within rounding)
+var adSum = 0;
+dasha.active.sequence.forEach(function(ad) { adSum += ad.totalYears; });
+var mdYears = dasha.active.mahadasha.totalYears;
+assert.ok(Math.abs(adSum - mdYears) < 0.01,
+  "Sum of antardasha years (" + adSum.toFixed(4) + ") should equal mahadasha years (" + mdYears + ")");
+
+// Test 9: Antardasha formula: (MD years * AD planet years) / 120
+// Verify formula by checking antardasha durations are proportional
+var dashaYearsMap = { Ketu:7, Venus:20, Sun:6, Moon:10, Mars:7, Rahu:18, Jupiter:16, Saturn:19, Mercury:17 };
+var firstAD = dasha.active.sequence[0];
+var expectedFirstADYears = (mdYears * dashaYearsMap[firstAD.antardasha]) / 120;
+assert.ok(Math.abs(firstAD.totalYears - expectedFirstADYears) < 0.01,
+  "First AD years should match formula: (" + mdYears + " * " + dashaYearsMap[firstAD.antardasha] + ")/120 = " +
+  expectedFirstADYears.toFixed(4) + ", got " + firstAD.totalYears);
+
+// Test 10: Backward compatibility - activeMahadasha field still exists
+assert.ok(dasha.activeMahadasha, "Should still have backward-compatible activeMahadasha field");
+assert.strictEqual(dasha.activeMahadasha, dasha.active.mahadasha.planet,
+  "activeMahadasha should match active.mahadasha.planet");
+
+// Test 11: birthNakshatraLord and balanceAtBirthYears still present
+assert.ok(dasha.birthNakshatraLord, "Should have birthNakshatraLord");
+assert.ok(typeof dasha.balanceAtBirthYears === "number", "Should have numeric balanceAtBirthYears");
+assert.ok(dasha.balanceAtBirthYears >= 0, "balanceAtBirthYears should be >= 0");
+
+// Test 12: First mahadasha years equals balance at birth
+assert.ok(Math.abs(dasha.fullSequence[0].totalYears - dasha.balanceAtBirthYears) < 0.01,
+  "First mahadasha totalYears should match balanceAtBirthYears");
+
+console.log("All Antardasha + Pratyantar Dasha tests passed.");
