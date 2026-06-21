@@ -1185,6 +1185,261 @@
     return lines;
   }
 
+  // ========== HORA (D2) DIVISIONAL CHART ==========
+  // Each sign divided into 2 halves (15 degrees each)
+  // Odd signs: first half = Sun (Leo), second half = Moon (Cancer)
+  // Even signs: first half = Moon (Cancer), second half = Sun (Leo)
+
+  function horaSign(longitude) {
+    var normalLon = normalize(longitude);
+    var rashiIndex = Math.floor(normalLon / 30);
+    var degInSign = normalLon - (rashiIndex * 30);
+    var isOddSign = (rashiIndex % 2 === 0); // 0-indexed: Aries=0 (odd), Taurus=1 (even)
+    var firstHalf = degInSign < 15;
+    if (isOddSign) {
+      return firstHalf ? 4 : 3; // Leo=4, Cancer=3
+    } else {
+      return firstHalf ? 3 : 4; // Cancer=3, Leo=4
+    }
+  }
+
+  function horaRow(name, longitude, horaAscSign) {
+    var hSign = horaSign(longitude);
+    return {
+      planet: name,
+      sign: SIGN_NAMES[hSign],
+      rashi: SIGN_HINDI[hSign],
+      symbol: SIGN_SYMBOLS[hSign],
+      lord: SIGN_LORDS[hSign],
+      house: ((hSign - horaAscSign + 12) % 12) + 1,
+      d1Sign: SIGN_NAMES[signIndex(longitude)],
+      d1Rashi: SIGN_HINDI[signIndex(longitude)]
+    };
+  }
+
+  function horaChart(input) {
+    var data = input || {};
+    var resolved = utcDateFromLocal(data.date, data.time, data.place);
+    var jd = julianDayFromUTC(resolved.utcDate);
+    var longitudes = planetaryLongitudes(jd);
+    var asc = ascendantLongitude(jd, resolved.location.lat, resolved.location.lon);
+
+    var horaAscSign = horaSign(asc);
+    var planets = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+    var rows = planets.map(function(planet) {
+      return horaRow(planet, longitudes[planet], horaAscSign);
+    });
+
+    var sunCount = rows.filter(function(r) { return r.sign === "Leo"; }).length;
+    var moonCount = rows.filter(function(r) { return r.sign === "Cancer"; }).length;
+
+    var reading = [];
+    reading.push("Hora chart me " + sunCount + " grah Sun hora (Leo) aur " + moonCount + " grah Moon hora (Cancer) me hain.");
+    if (sunCount > moonCount) {
+      reading.push("Sun hora dominance se self-effort, authority aur earned wealth se financial growth hogi.");
+    } else if (moonCount > sunCount) {
+      reading.push("Moon hora dominance se inherited wealth, public dealings aur nurturing activities se dhan aayega.");
+    } else {
+      reading.push("Balanced hora placement se dono - self-effort aur inherited/passive income ke channels active hain.");
+    }
+    reading.push("D2 chart financial timing aur wealth accumulation pattern ko samajhne ke liye use karein.");
+
+    return {
+      name: titleCase(data.name || "Native"),
+      chartType: "Hora (D2)",
+      chartTypeHindi: "होरा (D2)",
+      description: "Wealth, finance aur dhan yoga ka chart",
+      input: {
+        date: formatDate(dateParts(data.date || new Date())),
+        time: data.time || "12:00",
+        place: (resolved.location || {}).name || "Delhi"
+      },
+      horaLagna: {
+        sign: SIGN_NAMES[horaAscSign],
+        rashi: SIGN_HINDI[horaAscSign],
+        rashiHindi: SIGN_DEVANAGARI[horaAscSign],
+        symbol: SIGN_SYMBOLS[horaAscSign],
+        lord: SIGN_LORDS[horaAscSign],
+        element: SIGN_ELEMENTS[horaAscSign],
+        quality: SIGN_QUALITIES[horaAscSign]
+      },
+      planets: rows,
+      reading: reading,
+      disclaimer: "Hora chart dhan aur financial patterns ka sookshma analysis deta hai. D1 chart ke saath combine karke padhein."
+    };
+  }
+
+  // ========== DREKKANA (D3) DIVISIONAL CHART ==========
+  // Each sign divided into 3 parts (10 degrees each)
+  // First drekkana (0-10) = same sign
+  // Second drekkana (10-20) = 5th sign from it
+  // Third drekkana (20-30) = 9th sign from it
+
+  function drekkanaSign(longitude) {
+    var normalLon = normalize(longitude);
+    var rashiIndex = Math.floor(normalLon / 30);
+    var degInSign = normalLon - (rashiIndex * 30);
+    if (degInSign < 10) {
+      return rashiIndex; // same sign
+    } else if (degInSign < 20) {
+      return (rashiIndex + 4) % 12; // 5th sign (0-indexed: +4)
+    } else {
+      return (rashiIndex + 8) % 12; // 9th sign (0-indexed: +8)
+    }
+  }
+
+  function drekkanaRow(name, longitude, drekAscSign) {
+    var dSign = drekkanaSign(longitude);
+    return {
+      planet: name,
+      sign: SIGN_NAMES[dSign],
+      rashi: SIGN_HINDI[dSign],
+      symbol: SIGN_SYMBOLS[dSign],
+      lord: SIGN_LORDS[dSign],
+      house: ((dSign - drekAscSign + 12) % 12) + 1,
+      d1Sign: SIGN_NAMES[signIndex(longitude)],
+      d1Rashi: SIGN_HINDI[signIndex(longitude)]
+    };
+  }
+
+  function drekkanaChart(input) {
+    var data = input || {};
+    var resolved = utcDateFromLocal(data.date, data.time, data.place);
+    var jd = julianDayFromUTC(resolved.utcDate);
+    var longitudes = planetaryLongitudes(jd);
+    var asc = ascendantLongitude(jd, resolved.location.lat, resolved.location.lon);
+
+    var drekAscSign = drekkanaSign(asc);
+    var planets = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+    var rows = planets.map(function(planet) {
+      return drekkanaRow(planet, longitudes[planet], drekAscSign);
+    });
+
+    var thirdHouse = rows.filter(function(r) { return r.house === 3; });
+    var reading = [];
+    reading.push("Drekkana lagna " + SIGN_HINDI[drekAscSign] + " (" + SIGN_NAMES[drekAscSign] + ") hai jo courage, siblings aur short journeys me " + SIGN_ELEMENTS[drekAscSign].toLowerCase() + " nature dikhata hai.");
+    if (thirdHouse.length > 0) {
+      reading.push("3rd house me " + thirdHouse.map(function(r) { return r.planet; }).join(", ") + " hain jo siblings aur initiative ke matters activate karte hain.");
+    } else {
+      reading.push("3rd house empty hai - siblings se stable aur conflict-free relationship likely hai.");
+    }
+    reading.push("D3 chart bhai-beheno ke saath sambandh, personal courage aur chhote travels ko darshata hai.");
+
+    return {
+      name: titleCase(data.name || "Native"),
+      chartType: "Drekkana (D3)",
+      chartTypeHindi: "द्रेक्काण (D3)",
+      description: "Siblings, courage aur short journeys ka chart",
+      input: {
+        date: formatDate(dateParts(data.date || new Date())),
+        time: data.time || "12:00",
+        place: (resolved.location || {}).name || "Delhi"
+      },
+      drekkanaLagna: {
+        sign: SIGN_NAMES[drekAscSign],
+        rashi: SIGN_HINDI[drekAscSign],
+        rashiHindi: SIGN_DEVANAGARI[drekAscSign],
+        symbol: SIGN_SYMBOLS[drekAscSign],
+        lord: SIGN_LORDS[drekAscSign],
+        element: SIGN_ELEMENTS[drekAscSign],
+        quality: SIGN_QUALITIES[drekAscSign]
+      },
+      planets: rows,
+      reading: reading,
+      disclaimer: "Drekkana chart siblings, courage aur personal initiative ka sookshma analysis deta hai. D1 ke saath padhein."
+    };
+  }
+
+  // ========== DASHAMSA (D10) DIVISIONAL CHART ==========
+  // Each sign divided into 10 parts (3 degrees each)
+  // For odd signs: count from the same sign
+  // For even signs: count from the 9th sign from it
+
+  function dashamsaSign(longitude) {
+    var normalLon = normalize(longitude);
+    var rashiIndex = Math.floor(normalLon / 30);
+    var degInSign = normalLon - (rashiIndex * 30);
+    var part = Math.floor(degInSign / 3); // 0-9
+    var isOddSign = (rashiIndex % 2 === 0); // 0-indexed: Aries=0 is odd sign
+    if (isOddSign) {
+      return (rashiIndex + part) % 12;
+    } else {
+      return (rashiIndex + 8 + part) % 12; // 9th sign = +8 in 0-indexed
+    }
+  }
+
+  function dashamsaRow(name, longitude, dashaAscSign) {
+    var dSign = dashamsaSign(longitude);
+    return {
+      planet: name,
+      sign: SIGN_NAMES[dSign],
+      rashi: SIGN_HINDI[dSign],
+      symbol: SIGN_SYMBOLS[dSign],
+      lord: SIGN_LORDS[dSign],
+      house: ((dSign - dashaAscSign + 12) % 12) + 1,
+      d1Sign: SIGN_NAMES[signIndex(longitude)],
+      d1Rashi: SIGN_HINDI[signIndex(longitude)]
+    };
+  }
+
+  function dashamChart(input) {
+    var data = input || {};
+    var resolved = utcDateFromLocal(data.date, data.time, data.place);
+    var jd = julianDayFromUTC(resolved.utcDate);
+    var longitudes = planetaryLongitudes(jd);
+    var asc = ascendantLongitude(jd, resolved.location.lat, resolved.location.lon);
+
+    var dashaAscSign = dashamsaSign(asc);
+    var planets = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+    var rows = planets.map(function(planet) {
+      return dashamsaRow(planet, longitudes[planet], dashaAscSign);
+    });
+
+    var tenthHouse = rows.filter(function(r) { return r.house === 10; });
+    var reading = [];
+    reading.push("Dashamsa lagna " + SIGN_HINDI[dashaAscSign] + " (" + SIGN_NAMES[dashaAscSign] + ") hai jo career me " + SIGN_ELEMENTS[dashaAscSign].toLowerCase() + " element aur " + SIGN_QUALITIES[dashaAscSign].toLowerCase() + " approach dikhata hai.");
+    if (tenthHouse.length > 0) {
+      reading.push("10th house me " + tenthHouse.map(function(r) { return r.planet; }).join(", ") + " hain jo professional growth aur public recognition strongly activate karte hain.");
+    } else {
+      reading.push("10th house empty hai - career growth steady effort aur D1 10th lord ke dasha me manifest hogi.");
+    }
+    reading.push("D10 chart profession, fame aur career achievements ka deep analysis hai. Job changes aur promotions ke liye dekha jata hai.");
+
+    return {
+      name: titleCase(data.name || "Native"),
+      chartType: "Dashamsa (D10)",
+      chartTypeHindi: "दशमांश (D10)",
+      description: "Career, profession aur fame ka chart",
+      input: {
+        date: formatDate(dateParts(data.date || new Date())),
+        time: data.time || "12:00",
+        place: (resolved.location || {}).name || "Delhi"
+      },
+      dashamsaLagna: {
+        sign: SIGN_NAMES[dashaAscSign],
+        rashi: SIGN_HINDI[dashaAscSign],
+        rashiHindi: SIGN_DEVANAGARI[dashaAscSign],
+        symbol: SIGN_SYMBOLS[dashaAscSign],
+        lord: SIGN_LORDS[dashaAscSign],
+        element: SIGN_ELEMENTS[dashaAscSign],
+        quality: SIGN_QUALITIES[dashaAscSign]
+      },
+      planets: rows,
+      reading: reading,
+      disclaimer: "Dashamsa chart career aur professional success ka sookshma analysis deta hai. D1 ke saath combine karein."
+    };
+  }
+
+  // ========== COMBINED DIVISIONAL CHARTS ==========
+  function divisionalCharts(input) {
+    return {
+      d2: horaChart(input),
+      d3: drekkanaChart(input),
+      d9: navamsaChart(input),
+      d10: dashamChart(input)
+    };
+  }
+
   function generateKundli(input) {
     const chart = makeChart(input);
     const navamsa = navamsaChart(input);
@@ -1886,6 +2141,10 @@
     resolvePlace: resolvePlace,
     makeChart: makeChart,
     navamsaChart: navamsaChart,
+    horaChart: horaChart,
+    drekkanaChart: drekkanaChart,
+    dashamChart: dashamChart,
+    divisionalCharts: divisionalCharts,
     generateKundli: generateKundli,
     dailyHoroscope: dailyHoroscope,
     panchang: panchang,
