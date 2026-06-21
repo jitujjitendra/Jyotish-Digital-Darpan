@@ -2720,6 +2720,116 @@
     };
   }
 
+  function weeklyHoroscope(input) {
+    var sign = normalizeSign(input && input.sign ? input.sign : "Aries");
+    var startDate = input && input.date ? input.date : new Date();
+    var index = SIGN_NAMES.indexOf(sign);
+    var parts = dateParts(startDate);
+    var weekStart = formatDate(parts);
+    var seed = hashSeed(sign + "-week-" + parts.year + "-" + Math.floor((parts.month * 4 + Math.floor(parts.day / 7))));
+
+    var themes = ["career growth", "relationship deepening", "financial awareness", "spiritual growth", "health focus", "learning new skills"];
+    var weekTheme = seededPick(seed, themes);
+    var overallMood = seededPick(seed >> 2, ["optimistic", "cautious", "energetic", "reflective", "productive", "balanced"]);
+
+    var days = [];
+    var dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    for (var d = 0; d < 7; d++) {
+      var daySeed = hashSeed(sign + "-" + weekStart + "-day" + d);
+      var focus = seededPick(daySeed, ["career", "love", "finance", "health", "family", "creativity"]);
+      var energy = seededPick(daySeed >> 3, ["high", "moderate", "low", "steady", "rising"]);
+      days.push({
+        day: dayNames[d],
+        focus: titleCase(focus),
+        energy: energy,
+        tip: seededPick(daySeed >> 5, [
+          "Initiative lene ka din hai",
+          "Patience rakhein, result milega",
+          "Communication pe dhyan dein",
+          "Rest aur recovery important hai",
+          "New opportunity explore karein",
+          "Close ones ke saath time spend karein",
+          "Financial planning ke liye achha din"
+        ])
+      });
+    }
+
+    return {
+      sign: sign,
+      rashi: SIGN_HINDI[index],
+      symbol: SIGN_SYMBOLS[index],
+      weekStart: weekStart,
+      theme: titleCase(weekTheme),
+      overallMood: titleCase(overallMood),
+      summary: sign + " ke liye is hafte " + weekTheme + " par focus rahega. Overall mood " + overallMood + " rahega. Week ke shuru mein energy " + days[0].energy + " rahegi.",
+      days: days,
+      luckyDay: seededPick(seed >> 4, dayNames),
+      luckyColor: seededPick(seed >> 6, ["Saffron", "White", "Green", "Royal Blue", "Silver", "Violet"]),
+      remedy: dailyRemedy(sign)
+    };
+  }
+
+  function monthlyHoroscope(input) {
+    var sign = normalizeSign(input && input.sign ? input.sign : "Aries");
+    var parts = dateParts(input && input.date ? input.date : new Date());
+    var index = SIGN_NAMES.indexOf(sign);
+    var seed = hashSeed(sign + "-month-" + parts.year + "-" + parts.month);
+
+    var keyThemes = [
+      seededPick(seed, ["Career advancement", "Financial stability", "Relationship harmony", "Personal growth"]),
+      seededPick(seed >> 2, ["Health improvement", "Spiritual awakening", "Creative expression", "Academic success"]),
+      seededPick(seed >> 4, ["Travel opportunities", "Family bonding", "Social expansion", "Inner peace"])
+    ];
+
+    var careerOutlook = seededPick(seed >> 3, [
+      "Work mein steady progress dikhegi. Patience rakhein aur consistent efforts dein.",
+      "New opportunities aa sakti hain. Resume ready rakhein aur networking karein.",
+      "Team collaboration se achhe results milenge. Leadership role bhi mil sakta hai.",
+      "Creative projects mein success milegi. Apni ideas confidently present karein."
+    ]);
+
+    var loveOutlook = seededPick(seed >> 5, [
+      "Relationships mein understanding badhegi. Communication honest rakhein.",
+      "Single natives ke liye new connections ke chances hain. Open minded rahein.",
+      "Partner ke saath quality time spend karna zaroori hai is mahine.",
+      "Past misunderstandings resolve ho sakte hain. Forgiveness se shuru karein."
+    ]);
+
+    var financeOutlook = seededPick(seed >> 7, [
+      "Financial planning par focus dein. Impulsive spending avoid karein.",
+      "Unexpected income ke chances hain. Savings bhi badhayein.",
+      "Investment ke liye research zaroor karein. Expert advice lein.",
+      "Monthly budget strictly follow karein. Long-term savings start karein."
+    ]);
+
+    var healthOutlook = seededPick(seed >> 9, [
+      "Regular exercise aur balanced diet se energy level achha rahega.",
+      "Mental health par dhyan dein. Meditation aur yoga helpful hoga.",
+      "Sleep routine fix karein. Late nights avoid karein jahan possible ho.",
+      "Outdoor activities se fresh feel karenge. Nature walks try karein."
+    ]);
+
+    var monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"];
+
+    return {
+      sign: sign,
+      rashi: SIGN_HINDI[index],
+      symbol: SIGN_SYMBOLS[index],
+      month: monthNames[parts.month - 1],
+      year: parts.year,
+      keyThemes: keyThemes,
+      overview: sign + " ke liye " + monthNames[parts.month - 1] + " " + parts.year + " mein " + keyThemes[0].toLowerCase() + " aur " + keyThemes[1].toLowerCase() + " important rahega.",
+      career: careerOutlook,
+      love: loveOutlook,
+      finance: financeOutlook,
+      health: healthOutlook,
+      luckyDates: [(seed % 20) + 1, ((seed >> 3) % 15) + 10, ((seed >> 6) % 10) + 20],
+      luckyColor: seededPick(seed >> 8, ["Saffron", "White", "Green", "Royal Blue", "Silver", "Violet", "Gold"]),
+      remedy: dailyRemedy(sign)
+    };
+  }
+
   return {
     constants: {
       signs: SIGN_NAMES,
@@ -2740,6 +2850,8 @@
     simpleKundliReading: simpleKundliReading,
     nameToRashi: nameToRashi,
     dailyHoroscope: dailyHoroscope,
+    weeklyHoroscope: weeklyHoroscope,
+    monthlyHoroscope: monthlyHoroscope,
     panchang: panchang,
     matchmaking: matchmaking,
     askAstrologer: askAstrologer,

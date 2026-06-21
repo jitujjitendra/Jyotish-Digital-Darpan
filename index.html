@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,6 +7,9 @@
   <meta name="description" content="Free Kundli banayein, Daily Rashifal padhein, Kundli Milan karein. Vedic Astrology predictions with Panchang, Yoga detection, Dasha analysis. Jyotish Digital Darpan - Aapka apna Vedic astrology assistant." />
   <meta name="keywords" content="kundli, rashifal, horoscope, vedic astrology, jyotish, kundli milan, matchmaking, panchang, birth chart, janam kundli, free kundli, daily horoscope, rashi, nakshatra, dasha" />
   <link rel="canonical" href="https://jyotishdigitaldarpan.com/" />
+  <link rel="alternate" hreflang="hi" href="https://jyotishdigitaldarpan.com/" />
+  <link rel="alternate" hreflang="en" href="https://jyotishdigitaldarpan.com/" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%AE%3C/text%3E%3C/svg%3E" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Jyotish Digital Darpan | Free Kundli, Rashifal & Vedic Astrology" />
   <meta property="og:description" content="Free Kundli banayein, Daily Rashifal padhein, Kundli Milan karein. Your personal Vedic astrology assistant." />
@@ -45,6 +48,8 @@
     }
   }
   </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -137,10 +142,15 @@
   
   <!-- Content Wrapper -->
   <div class="content-wrapper">
-    <!-- Header - Original Content Preserved Exactly -->
-    <header class="flex justify-between items-center p-6 bg-black bg-opacity-60 fixed top-0 w-full z-50">
+    <!-- Skip to content link -->
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+
+    <!-- Header with responsive hamburger menu -->
+    <header class="header flex justify-between items-center p-4 md:p-6 bg-black bg-opacity-60 fixed top-0 w-full z-50">
       <div class="text-lg font-semibold">Jyotish Digital Darpan</div>
-      <nav class="space-x-4 text-sm">
+      
+      <!-- Desktop Nav -->
+      <nav class="hidden md:flex space-x-4 text-sm items-center" role="navigation" aria-label="Main navigation">
         <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;" class="hover:underline nav-link">Home</a>
         <a href="#" onclick="return false;" class="hover:underline nav-link" data-action="kundli">Birth Chart</a>
         <a href="#" onclick="return false;" class="hover:underline nav-link" data-action="match">Match Making</a>
@@ -148,12 +158,39 @@
         <a href="#" onclick="return false;" class="hover:underline nav-link" data-action="panchang">Panchang</a>
         <a href="/blog" class="hover:underline nav-link">Blog</a>
         <a href="#" onclick="return false;" class="hover:underline nav-link" data-action="contact">Contact</a>
-        <button class="border px-2 py-1 rounded hover:bg-purple-800 transition-colors">हिंदी</button>
+        <button class="border px-2 py-1 rounded hover:bg-purple-800 transition-colors lang-toggle-btn">&#2361;&#2367;&#2306;&#2342;&#2368;</button>
       </nav>
+
+      <!-- Mobile Hamburger Button -->
+      <button id="hamburgerBtn" class="md:hidden flex flex-col justify-center items-center w-10 h-10 space-y-1.5" aria-label="Open menu" aria-expanded="false">
+        <span class="hamburger-line block w-6 h-0.5 bg-white rounded transition-all"></span>
+        <span class="hamburger-line block w-6 h-0.5 bg-white rounded transition-all"></span>
+        <span class="hamburger-line block w-6 h-0.5 bg-white rounded transition-all"></span>
+      </button>
     </header>
 
-    <!-- Hero Section - Original Content Preserved Exactly -->
-    <section class="pt-32 pb-20 text-center bg-gradient-to-b from-purple-900 via-transparent to-black">
+    <!-- Mobile Menu Overlay -->
+    <div id="mobileMenu" class="mobile-menu-overlay">
+      <div class="mobile-menu-content">
+        <div class="flex justify-between items-center p-6">
+          <div class="text-lg font-semibold text-white">Jyotish Digital Darpan</div>
+          <button id="mobileMenuClose" class="text-white text-3xl leading-none" aria-label="Close menu">&times;</button>
+        </div>
+        <nav class="flex flex-col items-center justify-center flex-1 space-y-6 text-xl" role="navigation" aria-label="Mobile navigation">
+          <a href="#" class="mobile-nav-link" data-mobile-nav="home">Home</a>
+          <a href="#" class="mobile-nav-link" data-action="kundli" data-mobile-nav>Birth Chart</a>
+          <a href="#" class="mobile-nav-link" data-action="match" data-mobile-nav>Match Making</a>
+          <a href="#" class="mobile-nav-link" data-action="horoscope" data-mobile-nav>Horoscope</a>
+          <a href="#" class="mobile-nav-link" data-action="panchang" data-mobile-nav>Panchang</a>
+          <a href="/blog" class="mobile-nav-link" data-mobile-nav>Blog</a>
+          <a href="#" class="mobile-nav-link" data-action="contact" data-mobile-nav>Contact</a>
+          <button class="border border-purple-400 px-4 py-2 rounded-lg hover:bg-purple-800 transition-colors text-purple-300 lang-toggle-btn">&#2361;&#2367;&#2306;&#2342;&#2368;</button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section id="main-content" class="pt-32 pb-20 text-center bg-gradient-to-b from-purple-900 via-transparent to-black">
       <h1 class="text-4xl md:text-5xl font-bold text-white">Embrace <span class="text-purple-400">Celestial Wisdom</span></h1>
       <p class="mt-4 text-sm md:text-base text-gray-300">Discover your cosmic path with ancient Vedic astrology insights for modern life guidance.</p>
       <p class="mt-2 text-lg md:text-xl font-medium">Kundli banayein, Bhavishya janein.</p>
@@ -168,38 +205,38 @@
       </div>
     </section>
 
-    <!-- Services Section - Original Content Preserved Exactly -->
+    <!-- Services Section -->
     <section class="py-16 text-center">
       <h2 class="text-3xl font-semibold mb-12">Our <span class="text-purple-400">Services</span></h2>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-8 px-8 max-w-7xl mx-auto">
         <div class="service-card p-8 rounded-xl">
-          <div class="service-icon h-16 w-16 mx-auto mb-4 rounded-full flex items-center justify-center text-2xl">♈</div>
+          <div class="service-icon h-16 w-16 mx-auto mb-4 rounded-full flex items-center justify-center text-2xl">&#9800;</div>
           <h3 class="font-bold text-lg mb-3">Birth Chart Generator</h3>
           <p class="text-sm mb-6">Get your complete birth chart with detailed analysis of all planetary positions and houses.</p>
-          <button class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm transition-colors">Generate Now</button>
+          <button class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm transition-colors" data-action="kundli">Generate Now</button>
         </div>
         <div class="service-card p-8 rounded-xl">
-          <div class="service-icon h-16 w-16 mx-auto mb-4 rounded-full flex items-center justify-center text-2xl">♉</div>
+          <div class="service-icon h-16 w-16 mx-auto mb-4 rounded-full flex items-center justify-center text-2xl">&#9801;</div>
           <h3 class="font-bold text-lg mb-3">Kundli Milan</h3>
           <p class="text-sm mb-6">Check compatibility with partner through traditional Vedic astrology match making.</p>
-          <button class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm transition-colors">Match Now</button>
+          <button class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm transition-colors" data-action="match">Match Now</button>
         </div>
         <div class="service-card p-8 rounded-xl">
-          <div class="service-icon h-16 w-16 mx-auto mb-4 rounded-full flex items-center justify-center text-2xl">♊</div>
+          <div class="service-icon h-16 w-16 mx-auto mb-4 rounded-full flex items-center justify-center text-2xl">&#9802;</div>
           <h3 class="font-bold text-lg mb-3">Daily Horoscope</h3>
           <p class="text-sm mb-6">Get daily, weekly and monthly predictions based on your zodiac sign.</p>
-          <button class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm transition-colors">Read Horoscope</button>
+          <button class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm transition-colors" data-action="horoscope">Read Horoscope</button>
         </div>
         <div class="service-card p-8 rounded-xl">
-          <div class="service-icon h-16 w-16 mx-auto mb-4 rounded-full flex items-center justify-center text-2xl">♋</div>
+          <div class="service-icon h-16 w-16 mx-auto mb-4 rounded-full flex items-center justify-center text-2xl">&#9803;</div>
           <h3 class="font-bold text-lg mb-3">Panchang</h3>
           <p class="text-sm mb-6">Access detailed daily Panchang including Tithi, Nakshatra, Yoga, Karana, and auspicious timings.</p>
-          <button class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm transition-colors">View Panchang</button>
+          <button class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm transition-colors" data-action="panchang">View Panchang</button>
         </div>
       </div>
     </section>
 
-    <!-- Zodiac Signs - Original Content Preserved Exactly -->
+    <!-- Zodiac Signs -->
     <section class="py-16 text-center bg-black bg-opacity-50">
       <h2 class="text-3xl font-semibold mb-12">Zodiac <span class="text-purple-400">Signs</span></h2>
       <div class="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-6 gap-4 px-6 max-w-8xl mx-auto">
@@ -301,7 +338,7 @@
       </div>
     </section>
 
-    <!-- Blog Section - Original Content Preserved Exactly -->
+    <!-- Blog Section -->
     <section class="py-16 bg-gray-900 bg-opacity-50">
       <div class="max-w-7xl mx-auto px-6">
         <h2 class="text-3xl font-semibold mb-4 text-center">Astrology <span class="text-purple-400">Blog</span></h2>
@@ -316,7 +353,7 @@
               </div>
               <h3 class="font-bold text-lg mb-3">Understanding Your Moon Sign</h3>
               <p class="text-sm text-gray-300 mb-4">Discover how your moon sign influences your emotions and inner world in ways your sun sign doesn't reveal.</p>
-              <a href="#" class="text-purple-400 text-sm font-semibold flex items-center hover:text-purple-300">
+              <a href="/blog" class="text-purple-400 text-sm font-semibold flex items-center hover:text-purple-300">
                 Read More <span class="ml-1">&rarr;</span>
               </a>
             </div>
@@ -330,7 +367,7 @@
               </div>
               <h3 class="font-bold text-lg mb-3">Planetary Retrogrades 2025</h3>
               <p class="text-sm text-gray-300 mb-4">A complete guide to all planetary retrogrades in 2025 and how they might affect your zodiac sign.</p>
-              <a href="#" class="text-purple-400 text-sm font-semibold flex items-center hover:text-purple-300">
+              <a href="/blog" class="text-purple-400 text-sm font-semibold flex items-center hover:text-purple-300">
                 Read More <span class="ml-1">&rarr;</span>
               </a>
             </div>
@@ -344,7 +381,7 @@
               </div>
               <h3 class="font-bold text-lg mb-3">Vedic Remedies for Saturn</h3>
               <p class="text-sm text-gray-300 mb-4">Powerful Vedic astrological remedies to appease Saturn and reduce the effects of Sade Sati.</p>
-              <a href="#" class="text-purple-400 text-sm font-semibold flex items-center hover:text-purple-300">
+              <a href="/blog" class="text-purple-400 text-sm font-semibold flex items-center hover:text-purple-300">
                 Read More <span class="ml-1">&rarr;</span>
               </a>
             </div>
@@ -358,76 +395,63 @@
         
        <!-- Blog Categories -->
         <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="bg-gray-800 p-6 rounded-xl hover:bg-purple-900 transition-colors border border-gray-700">
+          <a href="/blog?category=Planetary+Influences" class="bg-gray-800 p-6 rounded-xl hover:bg-purple-900 transition-colors border border-gray-700">
             <h3 class="font-bold mb-3 flex items-center">
-              <span class="text-purple-400 mr-2">✦</span> Planetary Influences
+              <span class="text-purple-400 mr-2">&#10022;</span> Planetary Influences
             </h3>
             <p class="text-sm text-gray-300">Understand how planets affect your life and destiny.</p>
-          </div>
-          <div class="bg-gray-800 p-6 rounded-xl hover:bg-purple-900 transition-colors border border-gray-700">
+          </a>
+          <a href="/blog?category=Remedies" class="bg-gray-800 p-6 rounded-xl hover:bg-purple-900 transition-colors border border-gray-700">
             <h3 class="font-bold mb-3 flex items-center">
-              <span class="text-purple-400 mr-2">✦</span> Remedies
+              <span class="text-purple-400 mr-2">&#10022;</span> Remedies
             </h3>
             <p class="text-sm text-gray-300">Vedic solutions for planetary afflictions.</p>
-          </div>
-          <div class="bg-gray-800 p-6 rounded-xl hover:bg-purple-900 transition-colors border border-gray-700">
+          </a>
+          <a href="/blog?category=Marriage+Compatibility" class="bg-gray-800 p-6 rounded-xl hover:bg-purple-900 transition-colors border border-gray-700">
             <h3 class="font-bold mb-3 flex items-center">
-              <span class="text-purple-400 mr-2">✦</span> Marriage Compatibility
+              <span class="text-purple-400 mr-2">&#10022;</span> Marriage Compatibility
             </h3>
             <p class="text-sm text-gray-300">Insights for harmonious relationships.</p>
-          </div>
-          <div class="bg-gray-800 p-6 rounded-xl hover:bg-purple-900 transition-colors border border-gray-700">
+          </a>
+          <a href="/blog?category=Career+Guidance" class="bg-gray-800 p-6 rounded-xl hover:bg-purple-900 transition-colors border border-gray-700">
             <h3 class="font-bold mb-3 flex items-center">
-              <span class="text-purple-400 mr-2">✦</span> Career Guidance
+              <span class="text-purple-400 mr-2">&#10022;</span> Career Guidance
             </h3>
             <p class="text-sm text-gray-300">Find your ideal career path through astrology.</p>
-          </div>
+          </a>
         </div>
       </div>
     </section>
 
-    <!-- Testimonials - Original Content Preserved Exactly -->
+    <!-- Why Choose Us Section -->
     <section class="py-16 bg-gray-900 bg-opacity-50 text-center">
-      <h2 class="text-3xl font-semibold mb-4">What Our <span class="text-purple-400">Clients Say</span></h2>
-      <p class="text-gray-400 mb-12 max-w-2xl mx-auto">Trusted by thousands of seekers on their spiritual journey</p>
-      <div class="grid md:grid-cols-3 gap-8 px-8 max-w-7xl mx-auto text-left text-sm">
-        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 hover:border-purple-500 transition-colors">
-          <div class="text-yellow-400 mb-2">★★★★★</div>
-          <p class="italic mb-4">"The birth chart reading was incredibly accurate! It provided me with valuable insights about my personality and potential career paths."</p>
-          <div class="flex items-center">
-            <div class="h-10 w-10 rounded-full bg-purple-600 mr-3 flex items-center justify-center">P</div>
-            <div>
-              <p class="text-purple-300 font-semibold">Priya Sharma</p>
-              <p class="text-xs text-gray-500">Mumbai</p>
-            </div>
-          </div>
+      <h2 class="text-3xl font-semibold mb-4">Why Choose <span class="text-purple-400">Us</span></h2>
+      <p class="text-gray-400 mb-12 max-w-2xl mx-auto">Experience the best of Vedic astrology, completely free and private</p>
+      <div class="grid md:grid-cols-4 gap-8 px-8 max-w-7xl mx-auto">
+        <div class="bg-gray-800 p-8 rounded-xl border border-gray-700 hover:border-purple-500 transition-colors text-center">
+          <div class="text-4xl mb-4">&#9889;</div>
+          <h3 class="font-bold text-lg mb-2 text-white">100% Free</h3>
+          <p class="text-sm text-gray-300">All features available without any charges or hidden fees. No subscriptions needed.</p>
         </div>
-        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 hover:border-purple-500 transition-colors">
-          <div class="text-yellow-400 mb-2">★★★★☆</div>
-          <p class="italic mb-4">"The Kundli Milan service helped us understand our compatibility before marriage. The detailed report highlighted our strengths and potential challenges."</p>
-          <div class="flex items-center">
-            <div class="h-10 w-10 rounded-full bg-purple-600 mr-3 flex items-center justify-center">R</div>
-            <div>
-              <p class="text-purple-300 font-semibold">Rahul Patel</p>
-              <p class="text-xs text-gray-500">Delhi</p>
-            </div>
-          </div>
+        <div class="bg-gray-800 p-8 rounded-xl border border-gray-700 hover:border-purple-500 transition-colors text-center">
+          <div class="text-4xl mb-4">&#127919;</div>
+          <h3 class="font-bold text-lg mb-2 text-white">Accurate Calculations</h3>
+          <p class="text-sm text-gray-300">Powered by VSOP87 planetary ephemeris for precise Vedic astrology computations.</p>
         </div>
-        <div class="bg-gray-800 p-6 rounded-xl border border-gray-700 hover:border-purple-500 transition-colors">
-          <div class="text-yellow-400 mb-2">★★★★★</div>
-          <p class="italic mb-4">"I consult the daily horoscope every morning and it has been surprisingly accurate. The remedies suggested have been very helpful."</p>
-          <div class="flex items-center">
-            <div class="h-10 w-10 rounded-full bg-purple-600 mr-3 flex items-center justify-center">A</div>
-            <div>
-              <p class="text-purple-300 font-semibold">Anjali Gupta</p>
-              <p class="text-xs text-gray-500">Bangalore</p>
-            </div>
-          </div>
+        <div class="bg-gray-800 p-8 rounded-xl border border-gray-700 hover:border-purple-500 transition-colors text-center">
+          <div class="text-4xl mb-4">&#128274;</div>
+          <h3 class="font-bold text-lg mb-2 text-white">Private & Secure</h3>
+          <p class="text-sm text-gray-300">Your birth data stays on your device. No third-party tracking or data sharing.</p>
+        </div>
+        <div class="bg-gray-800 p-8 rounded-xl border border-gray-700 hover:border-purple-500 transition-colors text-center">
+          <div class="text-4xl mb-4">&#128220;</div>
+          <h3 class="font-bold text-lg mb-2 text-white">Hindi-First</h3>
+          <p class="text-sm text-gray-300">Built for Hindi speakers with complete bilingual support in Hindi and English.</p>
         </div>
       </div>
     </section>
 
-    <!-- Discover the Power - Original Content Preserved Exactly -->
+    <!-- Discover the Power -->
     <section class="py-16 bg-black bg-opacity-50 text-center">
       <h2 class="text-3xl font-semibold mb-4">Discover the <span class="text-purple-400">Power</span></h2>
       <p class="text-sm text-gray-400 mt-2 mb-8 max-w-2xl mx-auto">Explore the mystical world of Vedic astrology through our visual journey of cosmic wisdom and sacred knowledge.</p>
@@ -491,7 +515,7 @@
       </div>
     </section>
 
-    <!-- Call to Action - Original Content Preserved Exactly -->
+    <!-- Call to Action -->
     <section class="py-16 bg-gradient-to-b from-purple-900 to-transparent text-center">
       <div class="max-w-2xl mx-auto px-6">
         <h2 class="text-2xl md:text-3xl font-semibold mb-4">Begin Your <span class="text-purple-400">Cosmic Journey</span> Today</h2>
@@ -502,16 +526,16 @@
       </div>
     </section>
 
-    <!-- Footer - Original Content Preserved Exactly -->
+    <!-- Footer -->
     <footer class="bg-black bg-opacity-70 py-12 text-sm text-gray-400">
       <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
         <div>
           <h3 class="text-white font-semibold text-lg mb-4">Jyotish Digital Darpan</h3>
           <p class="mb-4">Your trusted source for vedic astrology insights, horoscopes, and personalized predictions.</p>
           <div class="space-x-4">
-            <a href="#" class="hover:text-purple-400 text-xl">📘</a>
-            <a href="#" class="hover:text-purple-400 text-xl">📸</a>
-            <a href="#" class="hover:text-purple-400 text-xl">🐦</a>
+            <a href="#" class="hover:text-purple-400 text-xl">&#128216;</a>
+            <a href="#" class="hover:text-purple-400 text-xl">&#128248;</a>
+            <a href="#" class="hover:text-purple-400 text-xl">&#128038;</a>
           </div>
         </div>
         <div>
@@ -527,80 +551,85 @@
         <div>
           <h4 class="text-white font-semibold mb-4">Blog Categories</h4>
           <ul class="space-y-2">
-            <li><a href="#" class="hover:text-purple-400 flex items-center"><span class="mr-2">✦</span> Planetary Influences</a></li>
-            <li><a href="#" class="hover:text-purple-400 flex items-center"><span class="mr-2">✦</span> Remedies</a></li>
-            <li><a href="#" class="hover:text-purple-400 flex items-center"><span class="mr-2">✦</span> Marriage Compatibility</a></li>
-            <li><a href="#" class="hover:text-purple-400 flex items-center"><span class="mr-2">✦</span> Career Guidance</a></li>
+            <li><a href="/blog?category=Planetary+Influences" class="hover:text-purple-400 flex items-center"><span class="mr-2">&#10022;</span> Planetary Influences</a></li>
+            <li><a href="/blog?category=Remedies" class="hover:text-purple-400 flex items-center"><span class="mr-2">&#10022;</span> Remedies</a></li>
+            <li><a href="/blog?category=Marriage+Compatibility" class="hover:text-purple-400 flex items-center"><span class="mr-2">&#10022;</span> Marriage Compatibility</a></li>
+            <li><a href="/blog?category=Career+Guidance" class="hover:text-purple-400 flex items-center"><span class="mr-2">&#10022;</span> Career Guidance</a></li>
           </ul>
         </div>
         <div>
           <h4 class="text-white font-semibold mb-4">Contact Us</h4>
           <p>Email: contact@jyotishdarpan.com</p>
-          <p>Phone: +91 98765 43210</p>
           <button class="mt-4 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-sm transition-colors" data-action="contact">Contact Us</button>
         </div>
       </div>
-      <p class="text-center mt-8 pt-8 border-t border-gray-800">© 2025 Jyotish Digital Darpan. All rights reserved.</p>
+      <p class="text-center mt-8 pt-8 border-t border-gray-800">&copy; <script>document.write(new Date().getFullYear())</script> Jyotish Digital Darpan. All rights reserved.</p>
     </footer>
 
     <!-- Animation Script - Optimized Version -->
     <script>
       document.addEventListener('DOMContentLoaded', function() {
-        const cosmicBg = document.getElementById('cosmicBg');
-        const fragment = document.createDocumentFragment();
+        var cosmicBg = document.getElementById('cosmicBg');
+        if (!cosmicBg) return;
+        var isMobile = window.innerWidth < 768;
+        var starCount = isMobile ? 50 : 150;
+        var fragment = document.createDocumentFragment();
         
-        // Create stars more efficiently
-        for (let i = 0; i < 300; i++) { // Reduced from 800 for better mobile performance
-          const star = document.createElement('div');
+        for (var i = 0; i < starCount; i++) {
+          var star = document.createElement('div');
           star.className = 'star';
-          
-          const size = Math.random() * 2 + 1;
-          star.style.width = `${size}px`;
-          star.style.height = `${size}px`;
-          star.style.left = `${Math.random() * 100}%`;
-          star.style.top = `${Math.random() * 100}%`;
-          star.style.setProperty('--duration', `${Math.random() * 3 + 2}s`);
-          
+          var size = Math.random() * 2 + 1;
+          star.style.width = size + 'px';
+          star.style.height = size + 'px';
+          star.style.left = (Math.random() * 100) + '%';
+          star.style.top = (Math.random() * 100) + '%';
+          star.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
           fragment.appendChild(star);
         }
         
         cosmicBg.appendChild(fragment);
         
-        // Optimized shooting stars
         function createShootingStar() {
-          const shootingStar = document.createElement('div');
+          var shootingStar = document.createElement('div');
           shootingStar.className = 'shooting-star';
-          
-          const startX = Math.random() * 20;
-          const startY = Math.random() * 20;
-          shootingStar.style.left = `${startX}%`;
-          shootingStar.style.top = `${startY}%`;
-          
-          const duration = Math.random() * 3 + 2;
-          shootingStar.style.animationDuration = `${duration}s`;
-          
+          shootingStar.style.left = (Math.random() * 20) + '%';
+          shootingStar.style.top = (Math.random() * 20) + '%';
+          var duration = Math.random() * 3 + 2;
+          shootingStar.style.animationDuration = duration + 's';
           cosmicBg.appendChild(shootingStar);
-          
-          setTimeout(() => {
-            shootingStar.remove();
-          }, duration * 1000);
+          setTimeout(function() { shootingStar.remove(); }, duration * 1000);
         }
         
-        // Reduced frequency for mobile
-        const isMobile = window.innerWidth < 768;
-        setInterval(createShootingStar, isMobile ? 3000 : 2000);
-        
-        // Initial shooting stars
-        for (let i = 0; i < 2; i++) {
+        setInterval(createShootingStar, isMobile ? 4000 : 2000);
+        for (var j = 0; j < 2; j++) {
           setTimeout(createShootingStar, Math.random() * 2000);
         }
-      });
-      
-      // Fix for mobile scroll
-      window.addEventListener('load', function() {
-        if (/Mobi|Android/i.test(navigator.userAgent)) {
-          document.body.style.height = '100%';
-          document.documentElement.style.height = '100%';
+
+        // Mobile hamburger menu
+        var hamburgerBtn = document.getElementById('hamburgerBtn');
+        var mobileMenu = document.getElementById('mobileMenu');
+        var mobileMenuClose = document.getElementById('mobileMenuClose');
+        
+        if (hamburgerBtn && mobileMenu) {
+          hamburgerBtn.addEventListener('click', function() {
+            mobileMenu.classList.add('active');
+            hamburgerBtn.setAttribute('aria-expanded', 'true');
+            document.body.style.overflow = 'hidden';
+          });
+          
+          mobileMenuClose.addEventListener('click', function() {
+            mobileMenu.classList.remove('active');
+            hamburgerBtn.setAttribute('aria-expanded', 'false');
+            document.body.style.overflow = '';
+          });
+          
+          mobileMenu.querySelectorAll('[data-mobile-nav]').forEach(function(link) {
+            link.addEventListener('click', function() {
+              mobileMenu.classList.remove('active');
+              hamburgerBtn.setAttribute('aria-expanded', 'false');
+              document.body.style.overflow = '';
+            });
+          });
         }
       });
     </script>
@@ -618,7 +647,10 @@
               <div class="chat-subtitle">Aapka Astrology Assistant</div>
             </div>
           </div>
-          <button id="chatClose" class="chat-close-btn">&times;</button>
+          <div class="chat-header-actions">
+            <button id="chatClear" class="chat-clear-btn" title="Clear chat">&#128465;</button>
+            <button id="chatClose" class="chat-close-btn">&times;</button>
+          </div>
         </div>
         <div id="chatMessages" class="chat-messages"></div>
         <div id="chatQuickReplies" class="chat-quick-replies"></div>
@@ -628,10 +660,10 @@
         </div>
       </div>
     </div>
-    <script src="precision-ephemeris.js"></script>
-    <script src="astro-engine.js"></script>
-    <script src="i18n.js"></script>
-    <script src="app.js"></script>
+    <script src="precision-ephemeris.js" defer></script>
+    <script src="astro-engine.js" defer></script>
+    <script src="i18n.js" defer></script>
+    <script src="app.js" defer></script>
   </div>
 </body>
 </html>

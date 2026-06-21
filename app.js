@@ -256,7 +256,7 @@
         </ul>
         <p style="margin-top:12px;color:#ddd;">${escapeHtml(report.reading.remedy)}</p>
         <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
-          <a href="/report/${reportData}" target="_blank" style="display:inline-block;background:#7c3aed;color:#fff;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:13px;">Download Report (PDF)</a>
+          <button onclick="(function(){sessionStorage.setItem('jyotishReportData',decodeURIComponent('${reportData}'));window.open('/report','_blank')})()" style="display:inline-block;background:#7c3aed;color:#fff;padding:8px 16px;border-radius:8px;border:none;font-size:13px;cursor:pointer;">Download Report (PDF)</button>
           <button onclick="window.jyotishShare && window.jyotishShare('kundli','${escapeHtml(report.name)}','${escapeHtml(report.ascendant.rashi)}','${escapeHtml(report.moonSign.rashi)}')" style="background:#25D366;color:#fff;padding:8px 16px;border-radius:8px;border:none;font-size:13px;cursor:pointer;">Share on WhatsApp</button>
         </div>
         <p style="font-size:12px;color:#9ca3af;margin-top:12px;">${escapeHtml(report.disclaimer)}</p>
@@ -692,19 +692,32 @@
   function initChatbot() {
     var toggle = document.getElementById("chatbotToggle");
     var closeBtn = document.getElementById("chatClose");
+    var clearBtn = document.getElementById("chatClear");
     var sendBtn = document.getElementById("chatSend");
     var input = document.getElementById("chatInput");
 
     if (!toggle) return;
 
-    // Restore from sessionStorage
+    // Restore from localStorage
     try {
-      var saved = sessionStorage.getItem("jyotishChat");
+      var saved = localStorage.getItem("jyotishChat");
       if (saved) chatState = JSON.parse(saved);
     } catch (e) {}
 
     toggle.addEventListener("click", openChatPanel);
     closeBtn.addEventListener("click", closeChatPanel);
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function () {
+        chatState.history = [];
+        chatState.flow = null;
+        chatState.flowStep = 0;
+        chatState.flowData = {};
+        saveChat();
+        renderChatHistory();
+        showQuickReplies([]);
+        showWelcome();
+      });
+    }
     sendBtn.addEventListener("click", sendChatMessage);
     input.addEventListener("keydown", function (e) {
       if (e.key === "Enter") sendChatMessage();
@@ -729,7 +742,11 @@
 
   function saveChat() {
     try {
-      sessionStorage.setItem("jyotishChat", JSON.stringify(chatState));
+      // Limit stored messages to last 50
+      if (chatState.history.length > 50) {
+        chatState.history = chatState.history.slice(-50);
+      }
+      localStorage.setItem("jyotishChat", JSON.stringify(chatState));
     } catch (e) {}
   }
 

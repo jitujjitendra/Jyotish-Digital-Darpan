@@ -177,7 +177,17 @@ function sendJson(res, statusCode, body) {
   res.end(json);
 }
 
-function notFound(res) {
+function notFound(res, serveHtml) {
+  if (serveHtml) {
+    const page404Path = path.join(ROOT, "404.html");
+    try {
+      const html = fs.readFileSync(page404Path, "utf8");
+      sendHtml(res, 404, html);
+    } catch(e) {
+      sendHtml(res, 404, '<!DOCTYPE html><html><head><title>404</title></head><body style="background:#0f0c1a;color:#fff;text-align:center;padding:100px;font-family:sans-serif;"><h1>404 - Page Not Found</h1><p>Lost in the cosmos?</p><a href="/" style="color:#a855f7;">Go Home</a></body></html>');
+    }
+    return;
+  }
   sendJson(res, 404, { error: "Not found" });
 }
 
@@ -324,16 +334,16 @@ function safeStaticPath(pathname) {
 
 function serveStatic(req, res, pathname) {
   const filePath = safeStaticPath(pathname);
-  if (!filePath) { notFound(res); return; }
+  if (!filePath) { notFound(res, true); return; }
   
   // Block access to data directory
   if (filePath.startsWith(DATA_DIR) && !filePath.startsWith(UPLOADS_DIR)) {
-    notFound(res);
+    notFound(res, true);
     return;
   }
 
   fs.stat(filePath, (error, stat) => {
-    if (error || !stat.isFile()) { notFound(res); return; }
+    if (error || !stat.isFile()) { notFound(res, true); return; }
 
     const ext = path.extname(filePath).toLowerCase();
     const mimeType = MIME_TYPES[ext] || "application/octet-stream";
@@ -582,9 +592,28 @@ function renderBlogPost(blog) {
     .filter(b => b.status === "published" && b.slug !== blog.slug && b.category === blog.category)
     .slice(0, 3);
   
+  // XSS sanitization - strip dangerous tags
+  function sanitizeContent(text) {
+    return text
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+      .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, "")
+      .replace(/<object\b[^>]*>[\s\S]*?<\/object>/gi, "")
+      .replace(/<embed\b[^>]*>[\s\S]*?<\/embed>/gi, "")
+      .replace(/<form\b[^>]*>[\s\S]*?<\/form>/gi, "")
+      .replace(/<input\b[^>]*>/gi, "")
+      .replace(/<script\b[^>]*>/gi, "")
+      .replace(/<\/script>/gi, "")
+      .replace(/<iframe\b[^>]*>/gi, "")
+      .replace(/<\/iframe>/gi, "")
+      .replace(/<object\b[^>]*>/gi, "")
+      .replace(/<\/object>/gi, "")
+      .replace(/<embed\b[^>]*>/gi, "")
+      .replace(/<\/embed>/gi, "");
+  }
+
   // Simple markdown to HTML
   function mdToHtml(md) {
-    let html = md
+    let html = sanitizeContent(md)
       .replace(/^### (.+)$/gm, "<h3 class=\"text-xl font-bold mt-6 mb-3 text-purple-300\">$1</h3>")
       .replace(/^## (.+)$/gm, "<h2 class=\"text-2xl font-bold mt-8 mb-4 text-purple-200\">$1</h2>")
       .replace(/^# (.+)$/gm, "<h1 class=\"text-3xl font-bold mt-8 mb-4 text-white\">$1</h1>")
@@ -704,9 +733,16 @@ async function handleAdminApi(req, res, url) {
     const token = crypto.randomBytes(32).toString("hex");
     sessions[token] = { ip, lastActivity: Date.now(), timeout: config.sessionTimeout || 7200000 };
     
-    // Clear other sessions (single active session)
-    for (const t of Object.keys(sessions)) {
-      if (t !== token) delete sessions[t];
+    // Allow up to 2 simultaneous sessions
+    const allTokens = Object.keys(sessions);
+    if (allTokens.length > 2) {
+      // Remove oldest session(s) beyond 2
+      const sorted = allTokens
+        .filter(t => t !== token)
+        .sort((a, b) => sessions[a].lastActivity - sessions[b].lastActivity);
+      while (sorted.length > 1) {
+        delete sessions[sorted.shift()];
+      }
     }
     
     const csrfToken = generateCSRFToken();
@@ -989,6 +1025,22 @@ async function handleApi(req, res, url) {
       return;
     }
 
+    if (req.method === "GET" && url.pathname === "/api/horoscope/weekly") {
+      sendJson(res, 200, engine.weeklyHoroscope({
+        sign: url.searchParams.get("sign") || "Aries",
+        date: url.searchParams.get("date") || undefined
+      }));
+      return;
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/horoscope/monthly") {
+      sendJson(res, 200, engine.monthlyHoroscope({
+        sign: url.searchParams.get("sign") || "Aries",
+        date: url.searchParams.get("date") || undefined
+      }));
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === "/api/panchang") {
       sendJson(res, 200, engine.panchang({
         date: url.searchParams.get("date") || undefined,
@@ -1129,7 +1181,17 @@ const server = http.createServer((req, res) => {
     return;
   }
   
-  // Kundli Report page (printable)
+  // Kundli Report page (reads data from sessionStorage client-side)
+  if (url.pathname === "/report" || url.pathname === "/report/") {
+    const reportHtmlPath = path.join(ROOT, "report.html");
+    fs.readFile(reportHtmlPath, "utf8", (err, data) => {
+      if (err) { notFound(res, true); return; }
+      sendHtml(res, 200, data);
+    });
+    return;
+  }
+
+  // Legacy report route with data in URL (redirect to new approach)
   if (url.pathname.startsWith("/report/")) {
     const encodedData = url.pathname.replace("/report/", "").replace(/\/$/, "");
     try {
@@ -1139,7 +1201,7 @@ const server = http.createServer((req, res) => {
       const html = renderKundliReport(report, reading);
       sendCompressed(req, res, 200, html, "text/html; charset=utf-8");
     } catch(e) {
-      notFound(res);
+      notFound(res, true);
     }
     return;
   }
@@ -1159,7 +1221,7 @@ const server = http.createServer((req, res) => {
     const slug = url.pathname.replace("/blog/", "").replace(/\/$/, "");
     const blog = getBlogBySlug(slug);
     if (!blog || blog.deleted || blog.status !== "published") {
-      notFound(res);
+      notFound(res, true);
       return;
     }
     // Increment views
