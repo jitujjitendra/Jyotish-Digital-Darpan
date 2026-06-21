@@ -1805,6 +1805,229 @@
     return yogas;
   }
 
+  // ========== SIMPLE HINDI KUNDLI READING ==========
+
+  var SIGN_PERSONALITY = {
+    Aries: "Aap bahut energetic aur leader type ke insaan hain. Challenges se aap darte nahi, balki unhe enjoy karte hain.",
+    Taurus: "Aap stable aur patient insaan hain. Comfort aur luxury aapko attract karti hai. Aap reliable friend hain.",
+    Gemini: "Aap versatile aur witty insaan hain. Communication aapki strength hai. Aap har topic pe baat kar sakte hain.",
+    Cancer: "Aap emotional aur caring nature ke hain. Family aapke liye sabse important hai. Aap dusron ki feelings samajhte hain.",
+    Leo: "Aap confident aur charismatic hain. Leadership aapke blood mein hai. Limelight mein rehna aapko achha lagta hai.",
+    Virgo: "Aap detail-oriented aur practical hain. Perfectionist nature ke saath aap har kaam properly karte hain.",
+    Libra: "Aap diplomatic aur balanced nature ke hain. Beauty, art aur relationships mein natural attraction hai.",
+    Scorpio: "Aap intense aur focused insaan hain. Deep thinking aapki strength hai. Secrets rakhna aapko aata hai.",
+    Sagittarius: "Aap adventurous aur optimistic hain. Knowledge aur travel aapki life ka important part hai.",
+    Capricorn: "Aap disciplined aur ambitious hain. Hard work se aap apne goals zaroor achieve karte hain.",
+    Aquarius: "Aap innovative aur independent thinker hain. Society ke liye kuch different karna chahte hain.",
+    Pisces: "Aap creative aur spiritual nature ke hain. Imagination aur intuition aapki biggest strength hai."
+  };
+
+  var PLANET_CAREER = {
+    Sun: "Government job, leadership roles, ya administration mein success milegi.",
+    Moon: "Public dealing, hospitality, nursing, ya creative field mein achha karogey.",
+    Mars: "Engineering, military, sports, ya surgery jaise fields mein talent hai.",
+    Mercury: "Business, writing, accounting, IT ya communication field best rahega.",
+    Jupiter: "Teaching, law, banking, consulting ya advisory roles mein growth hogi.",
+    Venus: "Fashion, entertainment, beauty industry, luxury brands ya art field suit karega.",
+    Saturn: "Real estate, mining, agriculture, ya long-term stable career mein safalta milegi.",
+    Rahu: "Technology, foreign companies, unconventional careers mein achha scope hai.",
+    Ketu: "Spiritual work, research, astrology, ya healing practices mein talent hai."
+  };
+
+  var PLANET_HEALTH = {
+    Sun: "Aankh, heart aur bones ka dhyan rakhein. Subah ki dhoop lein.",
+    Moon: "Mental health, sleep cycle aur hydration pe focus rakhein.",
+    Mars: "Blood pressure, injuries aur anger management pe dhyan dein.",
+    Mercury: "Nervous system, skin aur breathing exercises important hain.",
+    Jupiter: "Liver, weight management aur overeating se bachein.",
+    Venus: "Kidney, sugar level aur reproductive health ka dhyan rakhein.",
+    Saturn: "Joints, bones aur regular exercise bahut zaroori hai.",
+    Rahu: "Anxiety, unknown fears aur sleep problems pe kaam karein.",
+    Ketu: "Digestive system aur meditation se balance rakhein."
+  };
+
+  var DASHA_MEANINGS = {
+    Sun: "confidence badhega, father figures se support milega, aur career mein recognition ka time hai",
+    Moon: "emotions active rahenge, mother ka role important hai, aur mental peace pe focus rakhein",
+    Mars: "energy high rahegi, courage se decisions lein, lekin anger control mein rakhein",
+    Mercury: "communication aur business opportunities aayengi, learning ka best time hai",
+    Jupiter: "luck favor karega, wisdom badhegi, aur spiritual growth hogi",
+    Venus: "relationships bloom honge, comfort badhega, aur creativity peak pe hogi",
+    Saturn: "patience test hoga, hard work ka fruit milega, discipline zaroori hai",
+    Rahu: "unexpected changes aayenge, worldly desires strong hongi, grounded rehna important hai",
+    Ketu: "spiritual awakening ka time hai, detachment feel hoga, inner growth hogi"
+  };
+
+  var GEMSTONES = {
+    Sun: "Manik (Ruby)", Moon: "Moti (Pearl)", Mars: "Moonga (Red Coral)",
+    Mercury: "Panna (Emerald)", Jupiter: "Pukhraj (Yellow Sapphire)",
+    Venus: "Heera (Diamond)", Saturn: "Neelam (Blue Sapphire)",
+    Rahu: "Gomed (Hessonite)", Ketu: "Lehsunia (Cat's Eye)"
+  };
+
+  var LUCKY_DAYS = {
+    Sun: "Ravivar (Sunday)", Moon: "Somvar (Monday)", Mars: "Mangalvar (Tuesday)",
+    Mercury: "Budhvar (Wednesday)", Jupiter: "Guruvar (Thursday)",
+    Venus: "Shukravar (Friday)", Saturn: "Shanivar (Saturday)",
+    Rahu: "Shanivar (Saturday)", Ketu: "Mangalvar (Tuesday)"
+  };
+
+  var LUCKY_COLORS = {
+    Sun: "Saffron / Orange", Moon: "White / Silver", Mars: "Red / Maroon",
+    Mercury: "Green", Jupiter: "Yellow / Gold", Venus: "White / Pink",
+    Saturn: "Blue / Black", Rahu: "Grey / Smoke", Ketu: "Brown / Multi-color"
+  };
+
+  function simpleKundliReading(chart) {
+    var ascIndex = SIGN_NAMES.indexOf(chart.ascendant.sign);
+    var ascLord = chart.ascendant.lord;
+    var element = SIGN_ELEMENTS[ascIndex];
+    var moonPlanet = chart.planets.find(function(p) { return p.planet === "Moon"; });
+    var tenthHousePlanets = chart.planets.filter(function(p) { return p.house === 10; });
+    var seventhLord = SIGN_LORDS[(ascIndex + 6) % 12];
+    var secondHousePlanets = chart.planets.filter(function(p) { return p.house === 2; });
+    var eleventhHousePlanets = chart.planets.filter(function(p) { return p.house === 11; });
+
+    var careerPlanet = tenthHousePlanets.length > 0 ? tenthHousePlanets[0].planet : SIGN_LORDS[(ascIndex + 9) % 12];
+    var healthPlanet = ascLord;
+    var dashaPlanet = chart.dasha.activeMahadasha;
+
+    var personality = SIGN_PERSONALITY[chart.ascendant.sign] || "Aap unique personality ke malik hain.";
+    personality += " " + chart.ascendant.lord + " aapka lagna lord hai isliye " +
+      (element === "Fire" ? "energy aur passion" : element === "Earth" ? "stability aur practicality" :
+       element === "Air" ? "communication aur intellect" : "emotions aur intuition") + " aapki life mein dominate karta hai.";
+
+    var career = "Aapke 10th house mein " + (tenthHousePlanets.length > 0 ?
+      tenthHousePlanets.map(function(p) { return p.planet; }).join(" aur ") + " hai" :
+      "koi graha nahi hai, 10th lord " + SIGN_LORDS[(ascIndex + 9) % 12] + " dekhna hoga") + ". " +
+      (PLANET_CAREER[careerPlanet] || "Mehnat se safalta milegi.");
+
+    var marriage = "Vivah ke mamle mein aapka 7th house lord " + seventhLord + " hai. " +
+      (seventhLord === "Venus" ? "Aapko achha aur sundar partner milega." :
+       seventhLord === "Jupiter" ? "Partner wise aur supportive hoga." :
+       seventhLord === "Saturn" ? "Thoda delay ho sakta hai lekin stable marriage milegi." :
+       seventhLord === "Mars" ? "Partner energetic hoga, lekin ego clashes se bachein." :
+       "Partner ke saath communication open rakhein toh achha rahega.");
+
+    var health = PLANET_HEALTH[healthPlanet] || "Regular exercise aur balanced diet se healthy rahein.";
+
+    var finance = "Dhan yog: ";
+    if (secondHousePlanets.length > 0 || eleventhHousePlanets.length > 0) {
+      var finPlanets = secondHousePlanets.concat(eleventhHousePlanets);
+      finance += finPlanets.map(function(p) { return p.planet; }).join(", ") + " aapke dhan bhav mein hai. ";
+      finance += "Income sources multiple honge aur savings pe dhyan dein.";
+    } else {
+      finance += "2nd aur 11th house lords strong hain toh steady income rahegi. Savings habit banayein.";
+    }
+
+    var currentPhase = "Abhi aapki " + dashaPlanet + " ki Mahadasha chal rahi hai. Iska matlab " +
+      (DASHA_MEANINGS[dashaPlanet] || "ye time growth ka hai") + ".";
+
+    var luckyNumber = ((ascIndex + 1) * 3 + 1) % 9 + 1;
+    var luckyThings = {
+      day: LUCKY_DAYS[ascLord] || "Ravivar (Sunday)",
+      color: LUCKY_COLORS[ascLord] || "Purple",
+      number: luckyNumber,
+      gemstone: GEMSTONES[ascLord] || "Moti (Pearl)",
+      mantra: ascLord === "Sun" ? "Om Suryaya Namah" :
+              ascLord === "Moon" ? "Om Chandraya Namah" :
+              ascLord === "Mars" ? "Om Mangalaya Namah" :
+              ascLord === "Mercury" ? "Om Budhaya Namah" :
+              ascLord === "Jupiter" ? "Om Gurave Namah" :
+              ascLord === "Venus" ? "Om Shukraya Namah" :
+              ascLord === "Saturn" ? "Om Shanaye Namah" :
+              "Om Namah Shivaya"
+    };
+
+    var dosAndDonts = [
+      ascLord === "Saturn" || ascLord === "Mars" ? "Gusse mein koi bhi decision na lein" : "Overthinking se bachein",
+      "Subah jaldi uthein aur thodi meditation zaroor karein",
+      LUCKY_DAYS[ascLord] ? LUCKY_DAYS[ascLord].split(" ")[0] + " ko apna important kaam plan karein" : "Apna lucky day use karein",
+      "Apne lagna lord " + ascLord + " ko strong rakhne ke liye " + (GEMSTONES[ascLord] || "appropriate gemstone") + " pehen sakte hain",
+      dashaPlanet === "Saturn" ? "Patience rakhein, results time pe aayenge" : "Apne goals pe focused rahein"
+    ];
+
+    var yogaReadings = [];
+    if (chart.yogas && chart.yogas.length > 0) {
+      yogaReadings = chart.yogas.slice(0, 5).map(function(y) {
+        return { name: y.name + " (" + y.nameHindi + ")", simpleExplanation: y.description };
+      });
+    }
+
+    return {
+      personality: personality,
+      career: career,
+      marriage: marriage,
+      health: health,
+      finance: finance,
+      currentPhase: currentPhase,
+      luckyThings: luckyThings,
+      dosAndDonts: dosAndDonts,
+      yogas: yogaReadings
+    };
+  }
+
+  // ========== NAME TO RASHI MAPPING ==========
+
+  var NAME_TO_RASHI_MAP = {
+    "A": 0, "L": 0, "E": 0,
+    "B": 1, "V": 1, "U": 1,
+    "K": 2, "G": 2,
+    "D": 3, "H": 3,
+    "M": 4, "T": 4,
+    "P": 5,
+    "R": 6,
+    "N": 7, "Y": 7,
+    "F": 8,
+    "J": 9,
+    "S": 10,
+    "Z": 11, "C": 11
+  };
+
+  // More specific multi-char prefixes (checked first)
+  var NAME_PREFIX_MAP = {
+    "BH": 8, "DH": 8, "PH": 8,
+    "KH": 9,
+    "SH": 10,
+    "TH": 5,
+    "CH": 11
+  };
+
+  function nameToRashi(name) {
+    var cleanName = String(name || "").trim().toUpperCase();
+    if (!cleanName) return null;
+
+    // Check two-letter prefixes first
+    var prefix2 = cleanName.substring(0, 2);
+    if (NAME_PREFIX_MAP[prefix2] !== undefined) {
+      var idx = NAME_PREFIX_MAP[prefix2];
+      return {
+        letter: prefix2,
+        rashiIndex: idx,
+        sign: SIGN_NAMES[idx],
+        rashi: SIGN_HINDI[idx],
+        rashiDevanagari: SIGN_DEVANAGARI[idx],
+        symbol: SIGN_SYMBOLS[idx]
+      };
+    }
+
+    // Check single letter
+    var firstLetter = cleanName.charAt(0);
+    if (NAME_TO_RASHI_MAP[firstLetter] !== undefined) {
+      var sIdx = NAME_TO_RASHI_MAP[firstLetter];
+      return {
+        letter: firstLetter,
+        rashiIndex: sIdx,
+        sign: SIGN_NAMES[sIdx],
+        rashi: SIGN_HINDI[sIdx],
+        rashiDevanagari: SIGN_DEVANAGARI[sIdx],
+        symbol: SIGN_SYMBOLS[sIdx]
+      };
+    }
+
+    return null;
+  }
+
   function generateKundli(input) {
     const chart = makeChart(input);
     const navamsa = navamsaChart(input);
@@ -2514,6 +2737,8 @@
     divisionalCharts: divisionalCharts,
     detectYogas: detectYogas,
     generateKundli: generateKundli,
+    simpleKundliReading: simpleKundliReading,
+    nameToRashi: nameToRashi,
     dailyHoroscope: dailyHoroscope,
     panchang: panchang,
     matchmaking: matchmaking,

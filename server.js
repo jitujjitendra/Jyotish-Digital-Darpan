@@ -452,6 +452,128 @@ function generateSitemap() {
   return xml;
 }
 
+// ==================== KUNDLI REPORT HTML RENDERER ====================
+
+function renderKundliReport(report, reading) {
+  const planets = report.planets || [];
+  const yogas = report.yogas || [];
+  const dasha = report.dasha || {};
+
+  return `<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeH(report.name)} - Kundli Report | Jyotish Digital Darpan</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #fff; color: #1a1a2e; line-height: 1.6; padding: 20px; max-width: 900px; margin: 0 auto; }
+    @media print { body { padding: 0; } .no-print { display: none !important; } }
+    .header { text-align: center; border-bottom: 3px solid #6b21a8; padding-bottom: 20px; margin-bottom: 30px; }
+    .header h1 { color: #6b21a8; font-size: 28px; margin-bottom: 5px; }
+    .header p { color: #555; font-size: 14px; }
+    .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 30px; }
+    .info-box { background: #f8f4ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 12px; }
+    .info-box label { font-size: 11px; color: #6b21a8; text-transform: uppercase; letter-spacing: 0.5px; }
+    .info-box .value { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+    .info-box .detail { font-size: 12px; color: #666; }
+    h2 { color: #6b21a8; font-size: 20px; margin: 30px 0 15px; padding-bottom: 8px; border-bottom: 1px solid #e9d5ff; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+    th { background: #6b21a8; color: #fff; padding: 10px 8px; text-align: left; }
+    td { padding: 8px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) { background: #faf5ff; }
+    .reading-section { background: #f8f4ff; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .reading-section h3 { color: #6b21a8; font-size: 15px; margin-bottom: 8px; }
+    .reading-section p { font-size: 14px; color: #333; }
+    .lucky-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+    .lucky-item { text-align: center; background: #fef3c7; border-radius: 8px; padding: 12px; }
+    .lucky-item .label { font-size: 11px; color: #92400e; }
+    .lucky-item .val { font-size: 16px; font-weight: 700; color: #78350f; }
+    .dos-list { list-style: none; padding: 0; }
+    .dos-list li { padding: 8px 12px; margin-bottom: 6px; background: #ecfdf5; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px; }
+    .yoga-card { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+    .yoga-card .name { font-weight: 700; color: #1e40af; }
+    .yoga-card .desc { font-size: 13px; color: #374151; margin-top: 4px; }
+    .dasha-timeline { margin-bottom: 20px; }
+    .dasha-item { display: flex; align-items: center; margin-bottom: 8px; }
+    .dasha-planet { width: 80px; font-weight: 700; color: #6b21a8; }
+    .dasha-bar { flex: 1; height: 24px; background: #e9d5ff; border-radius: 4px; position: relative; overflow: hidden; }
+    .dasha-bar .fill { height: 100%; background: #6b21a8; border-radius: 4px; }
+    .dasha-dates { font-size: 11px; color: #666; margin-left: 10px; min-width: 160px; }
+    .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #e9d5ff; color: #6b21a8; font-size: 12px; }
+    .print-btn { display: block; margin: 20px auto; background: #6b21a8; color: #fff; border: none; padding: 12px 32px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+    .print-btn:hover { background: #581c87; }
+    .chart-box { background: #f8f4ff; border: 2px solid #6b21a8; border-radius: 8px; padding: 16px; margin-bottom: 20px; font-family: monospace; font-size: 13px; text-align: center; }
+  </style>
+</head>
+<body>
+  <button class="print-btn no-print" onclick="window.print()">Print / Save as PDF</button>
+  <div class="header">
+    <h1>Jyotish Digital Darpan</h1>
+    <p>Vedic Kundli Report</p>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-box"><label>Name</label><div class="value">${escapeH(report.name)}</div></div>
+    <div class="info-box"><label>Date of Birth</label><div class="value">${escapeH(report.input.date)}</div></div>
+    <div class="info-box"><label>Time of Birth</label><div class="value">${escapeH(report.input.time)}</div></div>
+    <div class="info-box"><label>Place</label><div class="value">${escapeH(report.input.place)}</div><div class="detail">${escapeH(report.input.timezone)}</div></div>
+    <div class="info-box"><label>Lagna (Ascendant)</label><div class="value">${escapeH(report.ascendant.symbol)} ${escapeH(report.ascendant.sign)} (${escapeH(report.ascendant.rashi)})</div><div class="detail">${escapeH(report.ascendant.degree)} | Lord: ${escapeH(report.ascendant.lord)}</div></div>
+    <div class="info-box"><label>Moon Sign (Rashi)</label><div class="value">${escapeH(report.moonSign.symbol)} ${escapeH(report.moonSign.sign)} (${escapeH(report.moonSign.rashi)})</div><div class="detail">${escapeH(report.moonSign.nakshatra)} Pada ${escapeH(String(report.moonSign.pada))}</div></div>
+  </div>
+
+  <h2>Planetary Positions</h2>
+  <table>
+    <thead><tr><th>Planet</th><th>Sign (Rashi)</th><th>Degree</th><th>House</th><th>Nakshatra</th><th>Pada</th></tr></thead>
+    <tbody>${planets.map(function(p) {
+      return '<tr><td>' + escapeH(p.planet) + '</td><td>' + escapeH(p.symbol) + ' ' + escapeH(p.rashi) + ' (' + escapeH(p.sign) + ')</td><td>' + escapeH(p.degree) + '</td><td>' + escapeH(String(p.house)) + '</td><td>' + escapeH(p.nakshatra) + '</td><td>' + escapeH(String(p.pada)) + '</td></tr>';
+    }).join('')}</tbody>
+  </table>
+
+  <h2>Personality Reading</h2>
+  <div class="reading-section"><h3>Vyaktitva (Personality)</h3><p>${escapeH(reading.personality)}</p></div>
+  <div class="reading-section"><h3>Career</h3><p>${escapeH(reading.career)}</p></div>
+  <div class="reading-section"><h3>Vivah (Marriage)</h3><p>${escapeH(reading.marriage)}</p></div>
+  <div class="reading-section"><h3>Health</h3><p>${escapeH(reading.health)}</p></div>
+  <div class="reading-section"><h3>Dhan (Finance)</h3><p>${escapeH(reading.finance)}</p></div>
+  <div class="reading-section"><h3>Vartaman Dasha</h3><p>${escapeH(reading.currentPhase)}</p></div>
+
+  <h2>Dasha Timeline</h2>
+  <div class="dasha-timeline">${(dasha.fullSequence || []).map(function(md) {
+    var maxYears = 20;
+    var pct = Math.min(100, (md.totalYears / maxYears) * 100);
+    return '<div class="dasha-item"><span class="dasha-planet">' + escapeH(md.planet) + '</span><div class="dasha-bar"><div class="fill" style="width:' + pct + '%"></div></div><span class="dasha-dates">' + escapeH(md.startDate) + ' to ' + escapeH(md.endDate) + '</span></div>';
+  }).join('')}</div>
+
+  ${yogas.length > 0 ? '<h2>Yogas Detected</h2>' + yogas.map(function(y) {
+    return '<div class="yoga-card"><span class="name">' + escapeH(y.name) + ' (' + escapeH(y.nameHindi) + ')</span> <span style="font-size:11px;color:#059669;">[' + escapeH(y.type) + ' - ' + escapeH(y.strength) + ']</span><div class="desc">' + escapeH(y.description) + '</div></div>';
+  }).join('') : ''}
+
+  <h2>Lucky Items</h2>
+  <div class="lucky-grid">
+    <div class="lucky-item"><div class="label">Lucky Day</div><div class="val">${escapeH(reading.luckyThings.day)}</div></div>
+    <div class="lucky-item"><div class="label">Lucky Color</div><div class="val">${escapeH(reading.luckyThings.color)}</div></div>
+    <div class="lucky-item"><div class="label">Lucky Number</div><div class="val">${escapeH(String(reading.luckyThings.number))}</div></div>
+    <div class="lucky-item"><div class="label">Gemstone</div><div class="val">${escapeH(reading.luckyThings.gemstone)}</div></div>
+    <div class="lucky-item"><div class="label">Mantra</div><div class="val">${escapeH(reading.luckyThings.mantra)}</div></div>
+  </div>
+
+  <h2>Dos and Don'ts</h2>
+  <ul class="dos-list">${reading.dosAndDonts.map(function(item) { return '<li>' + escapeH(item) + '</li>'; }).join('')}</ul>
+
+  <div class="footer">
+    <p><strong>Jyotish Digital Darpan</strong></p>
+    <p>Free Vedic Astrology Report | jyotishdigitaldarpan.com</p>
+    <p style="margin-top:8px;font-size:11px;color:#999;">This is a rule-based Vedic astrology calculation. For critical life decisions, please consult a qualified astrologer.</p>
+  </div>
+</body>
+</html>`;
+}
+
+function escapeH(str) {
+  return String(str == null ? "" : str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 // ==================== BLOG POST HTML RENDERER ====================
 
 function renderBlogPost(blog) {
@@ -1007,6 +1129,21 @@ const server = http.createServer((req, res) => {
     return;
   }
   
+  // Kundli Report page (printable)
+  if (url.pathname.startsWith("/report/")) {
+    const encodedData = url.pathname.replace("/report/", "").replace(/\/$/, "");
+    try {
+      const data = JSON.parse(decodeURIComponent(encodedData));
+      const report = engine.generateKundli(data);
+      const reading = engine.simpleKundliReading(report);
+      const html = renderKundliReport(report, reading);
+      sendCompressed(req, res, 200, html, "text/html; charset=utf-8");
+    } catch(e) {
+      notFound(res);
+    }
+    return;
+  }
+
   // Blog listing page
   if (url.pathname === "/blog" || url.pathname === "/blog/") {
     const filePath = path.join(ROOT, "blog.html");

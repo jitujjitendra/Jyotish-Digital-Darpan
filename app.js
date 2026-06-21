@@ -235,6 +235,7 @@
   }
 
   function renderKundli(report) {
+    const reportData = encodeURIComponent(JSON.stringify({ name: report.name, date: report.input.date, time: report.input.time, place: report.input.place }));
     return `
       <div style="text-align:left;color:#e5e7eb;">
         <h3 style="font-size:20px;font-weight:700;margin:0 0 8px;">${escapeHtml(report.name)} - ${tt("nav.kundli")}</h3>
@@ -254,6 +255,10 @@
           }).join("")}
         </ul>
         <p style="margin-top:12px;color:#ddd;">${escapeHtml(report.reading.remedy)}</p>
+        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+          <a href="/report/${reportData}" target="_blank" style="display:inline-block;background:#7c3aed;color:#fff;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:13px;">Download Report (PDF)</a>
+          <button onclick="window.jyotishShare && window.jyotishShare('kundli','${escapeHtml(report.name)}','${escapeHtml(report.ascendant.rashi)}','${escapeHtml(report.moonSign.rashi)}')" style="background:#25D366;color:#fff;padding:8px 16px;border-radius:8px;border:none;font-size:13px;cursor:pointer;">Share on WhatsApp</button>
+        </div>
         <p style="font-size:12px;color:#9ca3af;margin-top:12px;">${escapeHtml(report.disclaimer)}</p>
       </div>
     `;
@@ -331,6 +336,11 @@
           ${infoBox("Lucky", `${report.luckyColor} / ${report.luckyNumber}`, report.panchangHint)}
         </div>
         <p style="color:#ddd;">${escapeHtml(report.remedy)}</p>
+        <div class="share-buttons">
+          <button class="share-btn whatsapp" onclick="window.jyotishShareHoroscope && window.jyotishShareHoroscope('${escapeHtml(report.sign)}','${escapeHtml(report.rashi)}','${escapeHtml(report.prediction)}','${escapeHtml(report.luckyColor)}','${escapeHtml(String(report.luckyNumber))}')">WhatsApp Share</button>
+          <button class="share-btn twitter" onclick="window.jyotishShareTwitter && window.jyotishShareTwitter('${escapeHtml(report.sign)}','${escapeHtml(report.rashi)}','${escapeHtml(report.prediction)}')">Twitter Share</button>
+          <button class="share-btn copy-link" onclick="window.jyotishCopyLink && window.jyotishCopyLink()">Copy Link</button>
+        </div>
       </div>
     `;
   }
@@ -574,7 +584,378 @@
     enhancePlaceInputs(document);
     if (document.querySelector(".content-wrapper")) {
       wireHomePage();
+      wireDataActions();
+      initChatbot();
+      loadDynamicBlogs();
     }
     wireBirthChartPage();
   });
+
+  // ==================== DATA-ACTION ROUTING ====================
+
+  function wireDataActions() {
+    document.addEventListener("click", function (event) {
+      var target = event.target.closest("[data-action]");
+      if (!target) return;
+      event.preventDefault();
+      var action = target.getAttribute("data-action");
+      switch (action) {
+        case "kundli": showBirthChartForm(); break;
+        case "match": showMatchForm(); break;
+        case "horoscope": showHoroscopeForm(target.getAttribute("data-sign") || ""); break;
+        case "panchang": showPanchangForm(); break;
+        case "contact": showContactForm(); break;
+        case "chatbot": openChatPanel(); break;
+      }
+    });
+    // Zodiac sign click to open horoscope
+    document.querySelectorAll(".zodiac-sign[data-sign]").forEach(function (card) {
+      card.addEventListener("click", function () {
+        showHoroscopeForm(card.getAttribute("data-sign"));
+      });
+    });
+  }
+
+  // ==================== DYNAMIC BLOG LOADING ====================
+
+  function loadDynamicBlogs() {
+    var container = document.getElementById("blogCardsContainer");
+    if (!container) return;
+    if (window.location.protocol === "file:") return; // can't fetch on file://
+    fetch("/api/blogs").then(function (res) { return res.json(); }).then(function (data) {
+      if (data.blogs && data.blogs.length >= 3) {
+        var gradients = [
+          "from-purple-600 to-indigo-800",
+          "from-blue-600 to-cyan-800",
+          "from-yellow-600 to-amber-800"
+        ];
+        var emojis = ["&#127769;", "&#127760;", "&#9796;"];
+        container.innerHTML = data.blogs.slice(0, 3).map(function (blog, idx) {
+          var readTime = blog.content ? Math.max(1, Math.ceil(blog.content.split(/\s+/).length / 200)) + " min read" : "5 min read";
+          return '<article class="bg-gray-800 rounded-xl overflow-hidden blog-card transition-all duration-300">' +
+            '<div class="h-48 bg-gradient-to-br ' + gradients[idx % 3] + ' flex items-center justify-center text-6xl">' + emojis[idx % 3] + '</div>' +
+            '<div class="p-6">' +
+            '<div class="flex justify-between items-center mb-2"><span class="text-xs text-purple-400">' + escapeHtml(blog.category || "Astrology") + '</span><span class="text-xs text-gray-500">' + escapeHtml(readTime) + '</span></div>' +
+            '<h3 class="font-bold text-lg mb-3">' + escapeHtml(blog.title) + '</h3>' +
+            '<p class="text-sm text-gray-300 mb-4">' + escapeHtml((blog.excerpt || blog.content || "").substring(0, 120)) + '...</p>' +
+            '<a href="/blog/' + escapeHtml(blog.slug) + '" class="text-purple-400 text-sm font-semibold flex items-center hover:text-purple-300">Read More <span class="ml-1">&rarr;</span></a>' +
+            '</div></article>';
+        }).join("");
+      }
+    }).catch(function () { /* keep fallback cards */ });
+  }
+
+  // ==================== SOCIAL SHARING ====================
+
+  window.jyotishShareHoroscope = function (sign, rashi, prediction, color, number) {
+    var text = encodeURIComponent(
+      "\uD83D\uDD2E Mera aaj ka Rashifal (" + rashi + " Rashi):\n" +
+      prediction.substring(0, 100) + "\n" +
+      "Lucky Color: " + color + " | Lucky Number: " + number + "\n\n" +
+      "Check yours free: https://jyotishdigitaldarpan.com"
+    );
+    window.open("https://wa.me/?text=" + text, "_blank");
+  };
+
+  window.jyotishShareTwitter = function (sign, rashi, prediction) {
+    var text = encodeURIComponent(
+      "\uD83D\uDD2E " + sign + " (" + rashi + ") Rashifal: " + prediction.substring(0, 120) + "\n\nFree astrology: https://jyotishdigitaldarpan.com"
+    );
+    window.open("https://twitter.com/intent/tweet?text=" + text, "_blank");
+  };
+
+  window.jyotishCopyLink = function () {
+    var url = "https://jyotishdigitaldarpan.com";
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      alert("Link copied!");
+    }
+  };
+
+  window.jyotishShare = function (type, name, lagna, moonSign) {
+    var text = encodeURIComponent(
+      "\uD83D\uDD2E " + name + " ki Kundli:\nLagna: " + lagna + " | Moon: " + moonSign + "\n\n" +
+      "Apni free kundli banayein: https://jyotishdigitaldarpan.com"
+    );
+    window.open("https://wa.me/?text=" + text, "_blank");
+  };
+
+  // ==================== CHATBOT - JYOTISH SAHAYAK ====================
+
+  var chatState = {
+    history: [],
+    flow: null,
+    flowStep: 0,
+    flowData: {}
+  };
+
+  function initChatbot() {
+    var toggle = document.getElementById("chatbotToggle");
+    var closeBtn = document.getElementById("chatClose");
+    var sendBtn = document.getElementById("chatSend");
+    var input = document.getElementById("chatInput");
+
+    if (!toggle) return;
+
+    // Restore from sessionStorage
+    try {
+      var saved = sessionStorage.getItem("jyotishChat");
+      if (saved) chatState = JSON.parse(saved);
+    } catch (e) {}
+
+    toggle.addEventListener("click", openChatPanel);
+    closeBtn.addEventListener("click", closeChatPanel);
+    sendBtn.addEventListener("click", sendChatMessage);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") sendChatMessage();
+    });
+  }
+
+  function openChatPanel() {
+    var panel = document.getElementById("chatPanel");
+    if (!panel) return;
+    panel.classList.remove("chat-hidden");
+    if (chatState.history.length === 0) {
+      showWelcome();
+    } else {
+      renderChatHistory();
+    }
+  }
+
+  function closeChatPanel() {
+    var panel = document.getElementById("chatPanel");
+    if (panel) panel.classList.add("chat-hidden");
+  }
+
+  function saveChat() {
+    try {
+      sessionStorage.setItem("jyotishChat", JSON.stringify(chatState));
+    } catch (e) {}
+  }
+
+  function addBotMsg(text, quickReplies) {
+    chatState.history.push({ type: "bot", text: text });
+    saveChat();
+    renderChatHistory();
+    showQuickReplies(quickReplies || []);
+  }
+
+  function addUserMsg(text) {
+    chatState.history.push({ type: "user", text: text });
+    saveChat();
+    renderChatHistory();
+  }
+
+  function renderChatHistory() {
+    var container = document.getElementById("chatMessages");
+    if (!container) return;
+    container.innerHTML = chatState.history.map(function (msg) {
+      return '<div class="chat-msg ' + msg.type + '">' + escapeHtml(msg.text) + '</div>';
+    }).join("");
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function showQuickReplies(replies) {
+    var container = document.getElementById("chatQuickReplies");
+    if (!container) return;
+    container.innerHTML = replies.map(function (r) {
+      return '<button class="chat-quick-btn" data-reply="' + escapeHtml(r) + '">' + escapeHtml(r) + '</button>';
+    }).join("");
+    container.querySelectorAll(".chat-quick-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        handleChatInput(btn.getAttribute("data-reply"));
+      });
+    });
+  }
+
+  function showTyping() {
+    var container = document.getElementById("chatMessages");
+    if (!container) return;
+    var typing = document.createElement("div");
+    typing.className = "chat-typing";
+    typing.id = "chatTypingIndicator";
+    typing.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+    container.appendChild(typing);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function hideTyping() {
+    var el = document.getElementById("chatTypingIndicator");
+    if (el) el.remove();
+  }
+
+  function showWelcome() {
+    chatState.flow = null;
+    chatState.flowStep = 0;
+    chatState.flowData = {};
+    addBotMsg("Namaste! \uD83D\uDE4F Main hoon Jyotish Sahayak. Aapki kya madad karun?", [
+      "Meri Kundli", "Aaj ka Rashifal", "Kundli Milan", "Career Guidance", "Naam se Rashi"
+    ]);
+  }
+
+  function sendChatMessage() {
+    var input = document.getElementById("chatInput");
+    var text = (input.value || "").trim();
+    if (!text) return;
+    input.value = "";
+    handleChatInput(text);
+  }
+
+  function handleChatInput(text) {
+    addUserMsg(text);
+    showQuickReplies([]);
+
+    // Check if we're in a flow
+    if (chatState.flow === "kundli") {
+      handleKundliFlow(text);
+      return;
+    }
+
+    // Route based on text
+    var lower = text.toLowerCase();
+    if (lower.indexOf("kundli") >= 0 && lower.indexOf("milan") < 0 || lower === "meri kundli") {
+      startKundliFlow();
+    } else if (lower.indexOf("rashifal") >= 0 || lower.indexOf("horoscope") >= 0 || lower === "aaj ka rashifal") {
+      showRashiSelection();
+    } else if (lower.indexOf("milan") >= 0 || lower.indexOf("match") >= 0 || lower === "kundli milan") {
+      delayedBot("Kundli Milan ke liye please website par 'Match Making' feature use karein. Main abhi basic rashifal aur kundli mein help kar sakta hoon.", ["Meri Kundli", "Aaj ka Rashifal", "Naam se Rashi"]);
+    } else if (lower.indexOf("career") >= 0 || lower === "career guidance") {
+      delayedBot("Career guidance ke liye mujhe aapki kundli chahiye. Kya aap birth details dena chahenge?", ["Haan, Kundli banao", "Nahi, Rashifal dekho"]);
+    } else if (lower.indexOf("naam") >= 0 || lower.indexOf("name") >= 0 || lower === "naam se rashi") {
+      delayedBot("Apna naam batayein, main aapki rashi bata dunga!");
+      chatState.flow = "naam";
+    } else if (lower === "haan, kundli banao") {
+      startKundliFlow();
+    } else if (lower === "nahi, rashifal dekho") {
+      showRashiSelection();
+    } else if (chatState.flow === "naam") {
+      handleNaamFlow(text);
+    } else if (isRashiName(text)) {
+      generateRashifal(text);
+    } else {
+      // Try naam se rashi as fallback for short text
+      if (text.length <= 20 && text.length >= 2) {
+        handleNaamFlow(text);
+      } else {
+        delayedBot("Main samajh nahi paaya. Kya aap in mein se kuch try karna chahenge?", [
+          "Meri Kundli", "Aaj ka Rashifal", "Naam se Rashi"
+        ]);
+      }
+    }
+  }
+
+  function isRashiName(text) {
+    var lower = text.toLowerCase().trim();
+    return signs.some(function (s) { return s.toLowerCase() === lower; }) ||
+      rashiHindi.some(function (r) { return r === text.trim(); });
+  }
+
+  function showRashiSelection() {
+    delayedBot("Kaun si rashi ka rashifal dekhna hai? Neeche se choose karein:", signs.map(function (s, i) { return s; }));
+  }
+
+  function generateRashifal(signText) {
+    showTyping();
+    setTimeout(function () {
+      hideTyping();
+      var report = engine.dailyHoroscope({ sign: signText, place: "Delhi" });
+      var msg = report.symbol + " " + report.sign + " (" + report.rashi + ") - Aaj ka Rashifal:\n\n" +
+        report.prediction + "\n\n" +
+        "Lucky Color: " + report.luckyColor + "\nLucky Number: " + report.luckyNumber + "\n" +
+        "Remedy: " + report.remedy;
+      addBotMsg(msg, ["Doosri Rashi dekho", "Meri Kundli", "Naam se Rashi"]);
+    }, 800);
+  }
+
+  function startKundliFlow() {
+    chatState.flow = "kundli";
+    chatState.flowStep = 0;
+    chatState.flowData = {};
+    delayedBot("Chaliye aapki kundli banate hain! Pehle aapka naam batayein:");
+  }
+
+  function handleKundliFlow(text) {
+    switch (chatState.flowStep) {
+      case 0:
+        chatState.flowData.name = text;
+        chatState.flowStep = 1;
+        delayedBot("Shukriya " + text + "! Ab aapki janam tithi (date of birth) batayein (jaise: 1990-05-15):");
+        break;
+      case 1:
+        chatState.flowData.date = text;
+        chatState.flowStep = 2;
+        delayedBot("Achha! Ab janam ka samay (time) batayein (jaise: 08:30):");
+        break;
+      case 2:
+        chatState.flowData.time = text;
+        chatState.flowStep = 3;
+        delayedBot("Last step! Janam sthan (birthplace) batayein (jaise: Delhi, Mumbai):");
+        break;
+      case 3:
+        chatState.flowData.place = text;
+        chatState.flow = null;
+        chatState.flowStep = 0;
+        generateChatKundli();
+        break;
+    }
+  }
+
+  function generateChatKundli() {
+    showTyping();
+    setTimeout(function () {
+      hideTyping();
+      try {
+        var report = engine.generateKundli(chatState.flowData);
+        var reading = engine.simpleKundliReading(report);
+        var msg = "Aapki Kundli tayaar hai! \u2728\n\n" +
+          "Lagna: " + report.ascendant.symbol + " " + report.ascendant.sign + " (" + report.ascendant.rashi + ")\n" +
+          "Moon: " + report.moonSign.symbol + " " + report.moonSign.sign + " (" + report.moonSign.rashi + ")\n\n" +
+          reading.personality + "\n\n" +
+          "Career: " + reading.career + "\n\n" +
+          "Abhi: " + reading.currentPhase + "\n\n" +
+          "Lucky Day: " + reading.luckyThings.day + " | Color: " + reading.luckyThings.color + " | Gemstone: " + reading.luckyThings.gemstone;
+        addBotMsg(msg, ["Detailed Report", "Dasha Check", "Yoga Check", "Career Analysis", "Naya sawal"]);
+      } catch (e) {
+        addBotMsg("Kuch galat hua. Please date format YYYY-MM-DD aur time HH:MM mein dein.", ["Phir se try karein"]);
+      }
+    }, 1200);
+  }
+
+  function handleNaamFlow(name) {
+    chatState.flow = null;
+    showTyping();
+    setTimeout(function () {
+      hideTyping();
+      var result = engine.nameToRashi(name);
+      if (result) {
+        var msg = "Aapka naam '" + name + "' ka pehla akshar '" + result.letter + "' hai.\n\n" +
+          "Ye " + result.symbol + " " + result.sign + " (" + result.rashi + " / " + result.rashiDevanagari + ") rashi se related hai!\n\n" +
+          "Is rashi ke log " +
+          (result.rashiIndex === 0 ? "energetic aur courageous hote hain." :
+           result.rashiIndex === 1 ? "patient aur loyal hote hain." :
+           result.rashiIndex === 2 ? "witty aur communicative hote hain." :
+           result.rashiIndex === 3 ? "emotional aur caring hote hain." :
+           result.rashiIndex === 4 ? "confident aur charismatic hote hain." :
+           result.rashiIndex === 5 ? "practical aur detail-oriented hote hain." :
+           result.rashiIndex === 6 ? "diplomatic aur artistic hote hain." :
+           result.rashiIndex === 7 ? "intense aur focused hote hain." :
+           result.rashiIndex === 8 ? "adventurous aur optimistic hote hain." :
+           result.rashiIndex === 9 ? "disciplined aur ambitious hote hain." :
+           result.rashiIndex === 10 ? "innovative aur independent hote hain." :
+           "creative aur intuitive hote hain.");
+        addBotMsg(msg, ["Is rashi ka Rashifal", "Meri Kundli", "Doosra naam check"]);
+      } else {
+        addBotMsg("Sorry, is naam se rashi nahi mil payi. Koi Hindi ya English naam try karein.", ["Naam se Rashi", "Aaj ka Rashifal"]);
+      }
+    }, 600);
+  }
+
+  function delayedBot(text, quickReplies) {
+    showTyping();
+    setTimeout(function () {
+      hideTyping();
+      addBotMsg(text, quickReplies);
+    }, 500);
+  }
+
 })();

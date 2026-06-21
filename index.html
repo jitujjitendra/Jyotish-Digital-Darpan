@@ -3,7 +3,48 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jyotish Digital Darpan</title>
+  <title>Jyotish Digital Darpan | Free Kundli, Rashifal, Kundli Milan - Vedic Astrology</title>
+  <meta name="description" content="Free Kundli banayein, Daily Rashifal padhein, Kundli Milan karein. Vedic Astrology predictions with Panchang, Yoga detection, Dasha analysis. Jyotish Digital Darpan - Aapka apna Vedic astrology assistant." />
+  <meta name="keywords" content="kundli, rashifal, horoscope, vedic astrology, jyotish, kundli milan, matchmaking, panchang, birth chart, janam kundli, free kundli, daily horoscope, rashi, nakshatra, dasha" />
+  <link rel="canonical" href="https://jyotishdigitaldarpan.com/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Jyotish Digital Darpan | Free Kundli, Rashifal & Vedic Astrology" />
+  <meta property="og:description" content="Free Kundli banayein, Daily Rashifal padhein, Kundli Milan karein. Your personal Vedic astrology assistant." />
+  <meta property="og:url" content="https://jyotishdigitaldarpan.com/" />
+  <meta property="og:site_name" content="Jyotish Digital Darpan" />
+  <meta property="og:locale" content="hi_IN" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Jyotish Digital Darpan | Free Kundli & Rashifal" />
+  <meta name="twitter:description" content="Free Vedic Astrology - Kundli, Rashifal, Kundli Milan, Panchang" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Jyotish Digital Darpan",
+    "url": "https://jyotishdigitaldarpan.com",
+    "description": "Free Vedic Astrology - Kundli, Rashifal, Kundli Milan, Panchang",
+    "inLanguage": ["hi", "en"],
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://jyotishdigitaldarpan.com/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Jyotish Digital Darpan",
+    "url": "https://jyotishdigitaldarpan.com",
+    "description": "Vedic Astrology platform offering free Kundli, Rashifal, Kundli Milan and Panchang services",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "email": "contact@jyotishdarpan.com",
+      "contactType": "customer service"
+    }
+  }
+  </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -100,13 +141,13 @@
     <header class="flex justify-between items-center p-6 bg-black bg-opacity-60 fixed top-0 w-full z-50">
       <div class="text-lg font-semibold">Jyotish Digital Darpan</div>
       <nav class="space-x-4 text-sm">
-        <a href="#" class="hover:underline nav-link">Home</a>
-        <a href="#" class="hover:underline nav-link">Birth Chart</a>
-        <a href="#" class="hover:underline nav-link">Match Making</a>
-        <a href="#" class="hover:underline nav-link">Horoscope</a>
-        <a href="#" class="hover:underline nav-link">Panchang</a>
-        <a href="#" class="hover:underline nav-link">Blog</a>
-        <a href="#" class="hover:underline nav-link">Contact</a>
+        <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;" class="hover:underline nav-link">Home</a>
+        <a href="#" onclick="return false;" class="hover:underline nav-link" data-action="kundli">Birth Chart</a>
+        <a href="#" onclick="return false;" class="hover:underline nav-link" data-action="match">Match Making</a>
+        <a href="#" onclick="return false;" class="hover:underline nav-link" data-action="horoscope">Horoscope</a>
+        <a href="#" onclick="return false;" class="hover:underline nav-link" data-action="panchang">Panchang</a>
+        <a href="/blog" class="hover:underline nav-link">Blog</a>
+        <a href="#" onclick="return false;" class="hover:underline nav-link" data-action="contact">Contact</a>
         <button class="border px-2 py-1 rounded hover:bg-purple-800 transition-colors">हिंदी</button>
       </nav>
     </header>
@@ -117,13 +158,13 @@
       <p class="mt-4 text-sm md:text-base text-gray-300">Discover your cosmic path with ancient Vedic astrology insights for modern life guidance.</p>
       <p class="mt-2 text-lg md:text-xl font-medium">Kundli banayein, Bhavishya janein.</p>
       <div class="mt-6 space-x-4">
-        <button class="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-3 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-purple-500/30">Generate Birth Chart</button>
+        <button class="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-3 rounded-lg transition-all transform hover:scale-105 shadow-lg shadow-purple-500/30" data-action="kundli">Generate Birth Chart</button>
       </div>
       <div class="mt-8 space-x-2 text-sm">
-        <button class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-purple-900 transition-colors">Daily Horoscope</button>
-        <button class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-purple-900 transition-colors">Kundli Milan</button>
-        <button class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-purple-900 transition-colors">Panchang</button>
-        <button class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-purple-900 transition-colors">Talk to Astrologer</button>
+        <button class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-purple-900 transition-colors" data-action="horoscope">Daily Horoscope</button>
+        <button class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-purple-900 transition-colors" data-action="match">Kundli Milan</button>
+        <button class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-purple-900 transition-colors" data-action="panchang">Panchang</button>
+        <button class="px-4 py-2 bg-gray-800 rounded-lg hover:bg-purple-900 transition-colors" data-action="chatbot">Talk to Astrologer</button>
       </div>
     </section>
 
@@ -163,86 +204,98 @@
       <h2 class="text-3xl font-semibold mb-12">Zodiac <span class="text-purple-400">Signs</span></h2>
       <div class="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-6 gap-4 px-6 max-w-8xl mx-auto">
         <!-- Aries -->
-        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign">
-          <div class="zodiac-circle" style="border-color: #f59e0b; color: #f59e0b">♈</div>
+        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign cursor-pointer hover:bg-purple-900 transition-colors" data-sign="Aries">
+          <div class="zodiac-circle" style="border-color: #f59e0b; color: #f59e0b">&#9800;</div>
           <p class="font-medium">Aries</p>
+          <p class="text-xs text-purple-300">Vedic: Mesh</p>
           <p class="text-xs text-gray-400 mt-1">Mar 21 - Apr 19</p>
         </div>
         
         <!-- Taurus -->
-        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign">
-          <div class="zodiac-circle" style="border-color: #10b981; color: #10b981">♉</div>
+        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign cursor-pointer hover:bg-purple-900 transition-colors" data-sign="Taurus">
+          <div class="zodiac-circle" style="border-color: #10b981; color: #10b981">&#9801;</div>
           <p class="font-medium">Taurus</p>
+          <p class="text-xs text-purple-300">Vedic: Vrishabh</p>
           <p class="text-xs text-gray-400 mt-1">Apr 20 - May 20</p>
         </div>
         
         <!-- Gemini -->
-        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign">
-          <div class="zodiac-circle" style="border-color: #3b82f6; color: #3b82f6">♊</div>
+        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign cursor-pointer hover:bg-purple-900 transition-colors" data-sign="Gemini">
+          <div class="zodiac-circle" style="border-color: #3b82f6; color: #3b82f6">&#9802;</div>
           <p class="font-medium">Gemini</p>
+          <p class="text-xs text-purple-300">Vedic: Mithun</p>
           <p class="text-xs text-gray-400 mt-1">May 21 - Jun 20</p>
         </div>
         
         <!-- Cancer -->
-        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign">
-          <div class="zodiac-circle" style="border-color: #ef4444; color: #ef4444">♋</div>
+        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign cursor-pointer hover:bg-purple-900 transition-colors" data-sign="Cancer">
+          <div class="zodiac-circle" style="border-color: #ef4444; color: #ef4444">&#9803;</div>
           <p class="font-medium">Cancer</p>
+          <p class="text-xs text-purple-300">Vedic: Kark</p>
           <p class="text-xs text-gray-400 mt-1">Jun 21 - Jul 22</p>
         </div>
         
         <!-- Leo -->
-        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign">
-          <div class="zodiac-circle" style="border-color: #8b5cf6; color: #8b5cf6">♌</div>
+        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign cursor-pointer hover:bg-purple-900 transition-colors" data-sign="Leo">
+          <div class="zodiac-circle" style="border-color: #8b5cf6; color: #8b5cf6">&#9804;</div>
           <p class="font-medium">Leo</p>
+          <p class="text-xs text-purple-300">Vedic: Simha</p>
           <p class="text-xs text-gray-400 mt-1">Jul 23 - Aug 22</p>
         </div>
         
         <!-- Virgo -->
-        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign">
-          <div class="zodiac-circle" style="border-color: #ec4899; color: #ec4899">♍</div>
+        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign cursor-pointer hover:bg-purple-900 transition-colors" data-sign="Virgo">
+          <div class="zodiac-circle" style="border-color: #ec4899; color: #ec4899">&#9805;</div>
           <p class="font-medium">Virgo</p>
+          <p class="text-xs text-purple-300">Vedic: Kanya</p>
           <p class="text-xs text-gray-400 mt-1">Aug 23 - Sep 22</p>
         </div>
         
         <!-- Libra -->
-        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign">
-          <div class="zodiac-circle" style="border-color: #14b8a6; color: #14b8a6">♎</div>
+        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign cursor-pointer hover:bg-purple-900 transition-colors" data-sign="Libra">
+          <div class="zodiac-circle" style="border-color: #14b8a6; color: #14b8a6">&#9806;</div>
           <p class="font-medium">Libra</p>
+          <p class="text-xs text-purple-300">Vedic: Tula</p>
           <p class="text-xs text-gray-400 mt-1">Sep 23 - Oct 22</p>
         </div>
         
         <!-- Scorpio -->
-        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign">
-          <div class="zodiac-circle" style="border-color: #f97316; color: #f97316">♏</div>
+        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign cursor-pointer hover:bg-purple-900 transition-colors" data-sign="Scorpio">
+          <div class="zodiac-circle" style="border-color: #f97316; color: #f97316">&#9807;</div>
           <p class="font-medium">Scorpio</p>
+          <p class="text-xs text-purple-300">Vedic: Vrishchik</p>
           <p class="text-xs text-gray-400 mt-1">Oct 23 - Nov 21</p>
         </div>
         
         <!-- Sagittarius -->
-        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign">
-          <div class="zodiac-circle" style="border-color: #6366f1; color: #6366f1">♐</div>
+        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign cursor-pointer hover:bg-purple-900 transition-colors" data-sign="Sagittarius">
+          <div class="zodiac-circle" style="border-color: #6366f1; color: #6366f1">&#9808;</div>
           <p class="font-medium">Sagittarius</p>
+          <p class="text-xs text-purple-300">Vedic: Dhanu</p>
           <p class="text-xs text-gray-400 mt-1">Nov 22 - Dec 21</p>
         </div>
         
         <!-- Capricorn -->
-        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign">
-          <div class="zodiac-circle" style="border-color: #64748b; color: #64748b">♑</div>
+        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign cursor-pointer hover:bg-purple-900 transition-colors" data-sign="Capricorn">
+          <div class="zodiac-circle" style="border-color: #64748b; color: #64748b">&#9809;</div>
           <p class="font-medium">Capricorn</p>
+          <p class="text-xs text-purple-300">Vedic: Makar</p>
           <p class="text-xs text-gray-400 mt-1">Dec 22 - Jan 19</p>
         </div>
         
         <!-- Aquarius -->
-        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign">
-          <div class="zodiac-circle" style="border-color: #06b6d4; color: #06b6d4">♒</div>
+        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign cursor-pointer hover:bg-purple-900 transition-colors" data-sign="Aquarius">
+          <div class="zodiac-circle" style="border-color: #06b6d4; color: #06b6d4">&#9810;</div>
           <p class="font-medium">Aquarius</p>
+          <p class="text-xs text-purple-300">Vedic: Kumbh</p>
           <p class="text-xs text-gray-400 mt-1">Jan 20 - Feb 18</p>
         </div>
         
         <!-- Pisces -->
-        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign">
-          <div class="zodiac-circle" style="border-color: #a855f7; color: #a855f7">♓</div>
+        <div class="bg-gray-800 p-6 rounded-xl zodiac-sign cursor-pointer hover:bg-purple-900 transition-colors" data-sign="Pisces">
+          <div class="zodiac-circle" style="border-color: #a855f7; color: #a855f7">&#9811;</div>
           <p class="font-medium">Pisces</p>
+          <p class="text-xs text-purple-300">Vedic: Meen</p>
           <p class="text-xs text-gray-400 mt-1">Feb 19 - Mar 20</p>
         </div>
       </div>
@@ -253,9 +306,9 @@
       <div class="max-w-7xl mx-auto px-6">
         <h2 class="text-3xl font-semibold mb-4 text-center">Astrology <span class="text-purple-400">Blog</span></h2>
         <p class="text-center text-gray-400 mb-12 max-w-2xl mx-auto">Explore our collection of articles on Vedic astrology, planetary influences, and spiritual growth.</p>
-        <div class="grid md:grid-cols-3 gap-8">
+        <div class="grid md:grid-cols-3 gap-8" id="blogCardsContainer">
           <article class="bg-gray-800 rounded-xl overflow-hidden blog-card transition-all duration-300">
-            <div class="h-48 bg-gradient-to-br from-purple-600 to-indigo-800 flex items-center justify-center text-6xl">🌙</div>
+            <div class="h-48 bg-gradient-to-br from-purple-600 to-indigo-800 flex items-center justify-center text-6xl">&#127769;</div>
             <div class="p-6">
               <div class="flex justify-between items-center mb-2">
                 <span class="text-xs text-purple-400">Moon Signs</span>
@@ -264,12 +317,12 @@
               <h3 class="font-bold text-lg mb-3">Understanding Your Moon Sign</h3>
               <p class="text-sm text-gray-300 mb-4">Discover how your moon sign influences your emotions and inner world in ways your sun sign doesn't reveal.</p>
               <a href="#" class="text-purple-400 text-sm font-semibold flex items-center hover:text-purple-300">
-                Read More <span class="ml-1">→</span>
+                Read More <span class="ml-1">&rarr;</span>
               </a>
             </div>
           </article>
           <article class="bg-gray-800 rounded-xl overflow-hidden blog-card transition-all duration-300">
-            <div class="h-48 bg-gradient-to-br from-blue-600 to-cyan-800 flex items-center justify-center text-6xl">🪐</div>
+            <div class="h-48 bg-gradient-to-br from-blue-600 to-cyan-800 flex items-center justify-center text-6xl">&#127760;</div>
             <div class="p-6">
               <div class="flex justify-between items-center mb-2">
                 <span class="text-xs text-purple-400">Planetary Movements</span>
@@ -278,12 +331,12 @@
               <h3 class="font-bold text-lg mb-3">Planetary Retrogrades 2025</h3>
               <p class="text-sm text-gray-300 mb-4">A complete guide to all planetary retrogrades in 2025 and how they might affect your zodiac sign.</p>
               <a href="#" class="text-purple-400 text-sm font-semibold flex items-center hover:text-purple-300">
-                Read More <span class="ml-1">→</span>
+                Read More <span class="ml-1">&rarr;</span>
               </a>
             </div>
           </article>
           <article class="bg-gray-800 rounded-xl overflow-hidden blog-card transition-all duration-300">
-            <div class="h-48 bg-gradient-to-br from-yellow-600 to-amber-800 flex items-center justify-center text-6xl">♄</div>
+            <div class="h-48 bg-gradient-to-br from-yellow-600 to-amber-800 flex items-center justify-center text-6xl">&#9796;</div>
             <div class="p-6">
               <div class="flex justify-between items-center mb-2">
                 <span class="text-xs text-purple-400">Remedies</span>
@@ -292,13 +345,13 @@
               <h3 class="font-bold text-lg mb-3">Vedic Remedies for Saturn</h3>
               <p class="text-sm text-gray-300 mb-4">Powerful Vedic astrological remedies to appease Saturn and reduce the effects of Sade Sati.</p>
               <a href="#" class="text-purple-400 text-sm font-semibold flex items-center hover:text-purple-300">
-                Read More <span class="ml-1">→</span>
+                Read More <span class="ml-1">&rarr;</span>
               </a>
             </div>
           </article>
         </div>
         <div class="text-center mt-12">
-          <a href="#" class="inline-block border border-purple-500 text-purple-300 px-8 py-3 rounded-lg hover:bg-purple-900 transition-colors font-medium">
+          <a href="/blog" class="inline-block border border-purple-500 text-purple-300 px-8 py-3 rounded-lg hover:bg-purple-900 transition-colors font-medium">
             View All Articles
           </a>
         </div>
@@ -443,7 +496,7 @@
       <div class="max-w-2xl mx-auto px-6">
         <h2 class="text-2xl md:text-3xl font-semibold mb-4">Begin Your <span class="text-purple-400">Cosmic Journey</span> Today</h2>
         <p class="text-sm md:text-base mb-8">Unlock the mysteries of your birth chart and discover what the stars have in store for you.</p>
-        <button class="bg-purple-600 hover:bg-purple-700 px-8 py-3 rounded-lg text-sm font-medium transition-all transform hover:scale-105 shadow-lg shadow-purple-500/30">
+        <button class="bg-purple-600 hover:bg-purple-700 px-8 py-3 rounded-lg text-sm font-medium transition-all transform hover:scale-105 shadow-lg shadow-purple-500/30" data-action="kundli">
           Generate Your Kundli
         </button>
       </div>
@@ -464,11 +517,11 @@
         <div>
           <h4 class="text-white font-semibold mb-4">Quick Links</h4>
           <ul class="space-y-2">
-            <li><a href="#" class="hover:text-purple-400 flex items-center"><span class="mr-2">→</span> Birth Chart</a></li>
-            <li><a href="#" class="hover:text-purple-400 flex items-center"><span class="mr-2">→</span> Match Making</a></li>
-            <li><a href="#" class="hover:text-purple-400 flex items-center"><span class="mr-2">→</span> Daily Horoscope</a></li>
-            <li><a href="#" class="hover:text-purple-400 flex items-center"><span class="mr-2">→</span> Panchang</a></li>
-            <li><a href="#" class="hover:text-purple-400 flex items-center"><span class="mr-2">→</span> Blog</a></li>
+            <li><a href="#" onclick="return false;" data-action="kundli" class="hover:text-purple-400 flex items-center"><span class="mr-2">&rarr;</span> Birth Chart</a></li>
+            <li><a href="#" onclick="return false;" data-action="match" class="hover:text-purple-400 flex items-center"><span class="mr-2">&rarr;</span> Match Making</a></li>
+            <li><a href="#" onclick="return false;" data-action="horoscope" class="hover:text-purple-400 flex items-center"><span class="mr-2">&rarr;</span> Daily Horoscope</a></li>
+            <li><a href="#" onclick="return false;" data-action="panchang" class="hover:text-purple-400 flex items-center"><span class="mr-2">&rarr;</span> Panchang</a></li>
+            <li><a href="/blog" class="hover:text-purple-400 flex items-center"><span class="mr-2">&rarr;</span> Blog</a></li>
           </ul>
         </div>
         <div>
@@ -484,7 +537,7 @@
           <h4 class="text-white font-semibold mb-4">Contact Us</h4>
           <p>Email: contact@jyotishdarpan.com</p>
           <p>Phone: +91 98765 43210</p>
-          <button class="mt-4 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-sm transition-colors">Contact Us</button>
+          <button class="mt-4 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-sm transition-colors" data-action="contact">Contact Us</button>
         </div>
       </div>
       <p class="text-center mt-8 pt-8 border-t border-gray-800">© 2025 Jyotish Digital Darpan. All rights reserved.</p>
@@ -551,6 +604,30 @@
         }
       });
     </script>
+    <!-- Chatbot UI - Jyotish Sahayak -->
+    <div id="jyotishChatbot">
+      <button id="chatbotToggle" title="Jyotish Sahayak" aria-label="Open Jyotish Sahayak chatbot">
+        <span class="chatbot-icon">&#128302;</span>
+      </button>
+      <div id="chatPanel" class="chat-hidden">
+        <div class="chat-header">
+          <div class="chat-header-info">
+            <span class="chat-avatar">&#128302;</span>
+            <div>
+              <div class="chat-title">Jyotish Sahayak</div>
+              <div class="chat-subtitle">Aapka Astrology Assistant</div>
+            </div>
+          </div>
+          <button id="chatClose" class="chat-close-btn">&times;</button>
+        </div>
+        <div id="chatMessages" class="chat-messages"></div>
+        <div id="chatQuickReplies" class="chat-quick-replies"></div>
+        <div class="chat-input-area">
+          <input type="text" id="chatInput" placeholder="Apna message yahan likhein..." autocomplete="off" />
+          <button id="chatSend" title="Send">&#9654;</button>
+        </div>
+      </div>
+    </div>
     <script src="precision-ephemeris.js"></script>
     <script src="astro-engine.js"></script>
     <script src="i18n.js"></script>
