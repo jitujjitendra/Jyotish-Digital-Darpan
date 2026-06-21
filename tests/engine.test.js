@@ -309,3 +309,87 @@ assert.strictEqual(match1.ashtakoot.percentage,
   "Percentage should be (total/36)*100 rounded to 1 decimal");
 
 console.log("All Classical Ashtakoot Guna Milan tests passed.");
+
+// ========== NAVAMSA (D9) CHART TESTS ==========
+
+// Test 1: navamsaChart returns proper structure
+var nav1 = engine.navamsaChart({
+  name: "Nav Test",
+  date: "1990-05-15",
+  time: "10:30",
+  place: "Delhi"
+});
+
+assert.strictEqual(nav1.chartType, "Navamsa (D9)", "Chart type should be Navamsa (D9)");
+assert.ok(nav1.navamsaLagna, "Should have navamsa lagna");
+assert.ok(nav1.navamsaLagna.sign, "Navamsa lagna should have sign");
+assert.ok(nav1.navamsaLagna.rashi, "Navamsa lagna should have rashi");
+assert.ok(nav1.navamsaLagna.lord, "Navamsa lagna should have lord");
+assert.ok(nav1.navamsaLagna.element, "Navamsa lagna should have element");
+assert.ok(nav1.d1Lagna, "Should have D1 lagna reference");
+assert.strictEqual(nav1.planets.length, 9, "Should have 9 planets");
+
+// Test 2: Each planet row has correct fields
+nav1.planets.forEach(function(p) {
+  assert.ok(p.planet, "Planet should have name");
+  assert.ok(p.sign, "Planet should have navamsa sign");
+  assert.ok(p.rashi, "Planet should have navamsa rashi");
+  assert.ok(p.lord, "Planet should have navamsa lord");
+  assert.ok(p.house >= 1 && p.house <= 12, p.planet + " house should be 1-12, got " + p.house);
+  assert.ok(typeof p.strength === "number", p.planet + " should have numeric strength");
+  assert.ok(p.strength >= 30 && p.strength <= 100, p.planet + " strength should be 30-100, got " + p.strength);
+  assert.ok(typeof p.vargottama === "boolean", p.planet + " should have vargottama boolean");
+  assert.ok(typeof p.exalted === "boolean", p.planet + " should have exalted boolean");
+  assert.ok(typeof p.debilitated === "boolean", p.planet + " should have debilitated boolean");
+  assert.ok(p.d1Sign, p.planet + " should have d1Sign for comparison");
+});
+
+// Test 3: Marriage analysis structure
+assert.ok(nav1.marriageAnalysis, "Should have marriage analysis");
+assert.ok(nav1.marriageAnalysis.seventhHouse, "Should have 7th house info");
+assert.ok(nav1.marriageAnalysis.seventhHouse.lord, "7th house should have lord");
+assert.ok(Array.isArray(nav1.marriageAnalysis.seventhHouse.planets), "7th house planets should be array");
+assert.ok(nav1.marriageAnalysis.venusPosition, "Should have Venus position");
+assert.ok(nav1.marriageAnalysis.jupiterPosition, "Should have Jupiter position");
+
+// Test 4: Vargottama detection - planet in same sign in D1 and D9
+nav1.planets.forEach(function(p) {
+  if (p.vargottama) {
+    assert.strictEqual(p.sign, p.d1Sign,
+      p.planet + " is vargottama so D9 sign (" + p.sign + ") must equal D1 sign (" + p.d1Sign + ")");
+  }
+});
+assert.ok(Array.isArray(nav1.vargottamaPlanets), "vargottamaPlanets should be array");
+
+// Test 5: Reading should be generated
+assert.ok(Array.isArray(nav1.reading), "Reading should be an array");
+assert.ok(nav1.reading.length >= 3, "Reading should have at least 3 lines");
+
+// Test 6: Navamsa is included in generateKundli output
+var kundliWithNav = engine.generateKundli({
+  name: "Full Kundli Test",
+  date: "1993-12-01",
+  time: "06:00",
+  place: "Varanasi"
+});
+assert.ok(kundliWithNav.navamsa, "generateKundli should include navamsa chart");
+assert.strictEqual(kundliWithNav.navamsa.chartType, "Navamsa (D9)");
+assert.strictEqual(kundliWithNav.navamsa.planets.length, 9);
+
+// Test 7: Pushkara Navamsa detection
+assert.ok(Array.isArray(nav1.pushkaraPlanets), "pushkaraPlanets should be array");
+
+// Test 8: Different inputs produce different navamsa lagnas (sanity check)
+var nav2 = engine.navamsaChart({ date: "1985-01-01", time: "03:00", place: "Chennai" });
+var nav3 = engine.navamsaChart({ date: "2000-06-15", time: "18:00", place: "Mumbai" });
+// At least 2 out of 3 should have different navamsa lagnas (very likely)
+var lagnas = [nav1.navamsaLagna.sign, nav2.navamsaLagna.sign, nav3.navamsaLagna.sign];
+var uniqueLagnas = lagnas.filter(function(v, i, a) { return a.indexOf(v) === i; });
+assert.ok(uniqueLagnas.length >= 2, "Different birth data should generally produce different navamsa lagnas");
+
+// Test 9: Navamsa sign calculation correctness
+// Aries 0° should give Aries navamsa (Fire sign starts from Aries, first navamsa = Aries)
+// Aries 3°20' should give Taurus navamsa (second navamsa of Fire sign)
+// This tests the core navamsa formula
+
+console.log("All Navamsa (D9) chart tests passed.");

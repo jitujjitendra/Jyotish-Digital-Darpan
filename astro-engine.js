@@ -793,9 +793,276 @@
       });
   }
 
+  // ========== NAVAMSA (D9) DIVISIONAL CHART ==========
+  // Navamsa divides each sign (30°) into 9 equal parts (3°20' each = navamsa).
+  // Starting sign for navamsa cycle depends on the element of the rashi:
+  //   Fire signs (Aries, Leo, Sagittarius) → cycle starts from Aries
+  //   Earth signs (Taurus, Virgo, Capricorn) → cycle starts from Capricorn
+  //   Air signs (Gemini, Libra, Aquarius) → cycle starts from Libra
+  //   Water signs (Cancer, Scorpio, Pisces) → cycle starts from Cancer
+
+  var NAVAMSA_START = {
+    Fire: 0,    // Aries
+    Earth: 9,   // Capricorn
+    Air: 6,     // Libra
+    Water: 3    // Cancer
+  };
+
+  function navamsaSign(longitude) {
+    var normalLon = normalize(longitude);
+    var rashiIndex = Math.floor(normalLon / 30);
+    var degreeInRashi = normalLon - (rashiIndex * 30);
+    var navamsaPada = Math.floor(degreeInRashi / (30 / 9)); // 0-8 (which navamsa within the sign)
+    var element = SIGN_ELEMENTS[rashiIndex];
+    var startSign = NAVAMSA_START[element];
+    var navamsaIndex = (startSign + navamsaPada) % 12;
+    return navamsaIndex;
+  }
+
+  function navamsaRow(name, longitude, navAscSign) {
+    var navSign = navamsaSign(longitude);
+    return {
+      planet: name,
+      sign: SIGN_NAMES[navSign],
+      rashi: SIGN_HINDI[navSign],
+      symbol: SIGN_SYMBOLS[navSign],
+      lord: SIGN_LORDS[navSign],
+      house: ((navSign - navAscSign + 12) % 12) + 1,
+      d1Sign: SIGN_NAMES[signIndex(longitude)],
+      d1Rashi: SIGN_HINDI[signIndex(longitude)]
+    };
+  }
+
+  function isVargottama(longitude) {
+    // A planet is Vargottama when it's in the same sign in D1 (Rashi) and D9 (Navamsa)
+    return signIndex(longitude) === navamsaSign(longitude);
+  }
+
+  function navamsaStrength(planet, navRow, d1Row) {
+    var ownSign = SIGN_LORDS[SIGN_NAMES.indexOf(navRow.sign)] === planet;
+    var exalted = isExaltedInNavamsa(planet, navRow.sign);
+    var vargottama = navRow.sign === d1Row.sign;
+    var score = 50;
+    if (ownSign) score += 20;
+    if (exalted) score += 25;
+    if (vargottama) score += 15;
+    if ([1, 4, 5, 7, 9, 10].indexOf(navRow.house) >= 0) score += 10;
+    return clamp(score, 30, 100);
+  }
+
+  function isExaltedInNavamsa(planet, sign) {
+    var exaltations = {
+      Sun: "Aries", Moon: "Taurus", Mars: "Capricorn",
+      Mercury: "Virgo", Jupiter: "Cancer", Venus: "Pisces",
+      Saturn: "Libra", Rahu: "Gemini", Ketu: "Sagittarius"
+    };
+    return exaltations[planet] === sign;
+  }
+
+  function isDebilitatedInNavamsa(planet, sign) {
+    var debilitations = {
+      Sun: "Libra", Moon: "Scorpio", Mars: "Cancer",
+      Mercury: "Pisces", Jupiter: "Capricorn", Venus: "Virgo",
+      Saturn: "Aries", Rahu: "Sagittarius", Ketu: "Gemini"
+    };
+    return debilitations[planet] === sign;
+  }
+
+  function navamsaChart(input) {
+    var data = input || {};
+    var resolved = utcDateFromLocal(data.date, data.time, data.place);
+    var jd = julianDayFromUTC(resolved.utcDate);
+    var longitudes = planetaryLongitudes(jd);
+    var asc = ascendantLongitude(jd, resolved.location.lat, resolved.location.lon);
+
+    // Navamsa Lagna (Ascendant in D9)
+    var navAscSign = navamsaSign(asc);
+    var navAscLord = SIGN_LORDS[navAscSign];
+
+    // D1 ascendant for reference
+    var d1AscSign = signIndex(asc);
+
+    // All planet positions in Navamsa
+    var planets = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+    var d1Rows = planets.map(function(planet) {
+      return planetRow(planet, longitudes[planet], d1AscSign);
+    });
+    var navRows = planets.map(function(planet, idx) {
+      var row = navamsaRow(planet, longitudes[planet], navAscSign);
+      row.strength = navamsaStrength(planet, row, d1Rows[idx]);
+      row.vargottama = isVargottama(longitudes[planet]);
+      row.exalted = isExaltedInNavamsa(planet, row.sign);
+      row.debilitated = isDebilitatedInNavamsa(planet, row.sign);
+      return row;
+    });
+
+    // Vargottama planets (same sign in D1 and D9 — very strong)
+    var vargottamaPlanets = navRows.filter(function(row) { return row.vargottama; })
+      .map(function(row) { return row.planet; });
+
+    // 7th house analysis for marriage (D9 is primarily for marriage/dharma)
+    var seventhSign = (navAscSign + 6) % 12;
+    var seventhLord = SIGN_LORDS[seventhSign];
+    var planetsIn7th = navRows.filter(function(row) { return row.house === 7; })
+      .map(function(row) { return row.planet; });
+
+    // Venus and Jupiter positions (key for marriage)
+    var venus = navRows.find(function(row) { return row.planet === "Venus"; });
+    var jupiter = navRows.find(function(row) { return row.planet === "Jupiter"; });
+    var moon = navRows.find(function(row) { return row.planet === "Moon"; });
+
+    // Pushkara Navamsa check (auspicious navamsas)
+    var pushkaraPlanets = navRows.filter(function(row) {
+      return isPushkaraNavamsa(longitudes[row.planet]);
+    }).map(function(row) { return row.planet; });
+
+    // Generate reading
+    var reading = generateNavamsaReading(navAscSign, navAscLord, navRows, vargottamaPlanets, seventhLord, planetsIn7th, venus, jupiter);
+
+    return {
+      name: titleCase(data.name || "Native"),
+      chartType: "Navamsa (D9)",
+      chartTypeHindi: "नवांश (D9)",
+      description: "Marriage, dharma, soul-purpose aur inner strength ka chart",
+      input: {
+        date: formatDate(dateParts(data.date || new Date())),
+        time: data.time || "12:00",
+        place: (resolved.location || {}).name || "Delhi"
+      },
+      navamsaLagna: {
+        sign: SIGN_NAMES[navAscSign],
+        rashi: SIGN_HINDI[navAscSign],
+        rashiHindi: SIGN_DEVANAGARI[navAscSign],
+        symbol: SIGN_SYMBOLS[navAscSign],
+        lord: navAscLord,
+        element: SIGN_ELEMENTS[navAscSign],
+        quality: SIGN_QUALITIES[navAscSign]
+      },
+      d1Lagna: {
+        sign: SIGN_NAMES[d1AscSign],
+        rashi: SIGN_HINDI[d1AscSign]
+      },
+      planets: navRows,
+      vargottamaPlanets: vargottamaPlanets,
+      pushkaraPlanets: pushkaraPlanets,
+      marriageAnalysis: {
+        seventhHouse: {
+          sign: SIGN_NAMES[seventhSign],
+          rashi: SIGN_HINDI[seventhSign],
+          lord: seventhLord,
+          planets: planetsIn7th
+        },
+        venusPosition: {
+          sign: venus.sign,
+          rashi: venus.rashi,
+          house: venus.house,
+          strong: venus.strength >= 70,
+          exalted: venus.exalted,
+          debilitated: venus.debilitated
+        },
+        jupiterPosition: {
+          sign: jupiter.sign,
+          rashi: jupiter.rashi,
+          house: jupiter.house,
+          strong: jupiter.strength >= 70,
+          exalted: jupiter.exalted
+        }
+      },
+      reading: reading,
+      disclaimer: "Navamsa chart vivah, dharma aur aatma-bal ka sookshma analysis deta hai. Ye D1 (Rashi) chart ke saath combined reading mein use karein."
+    };
+  }
+
+  // Pushkara Navamsa: specific navamsa padas considered very auspicious
+  // These are the navamsa positions that fall in the signs ruled by benefics (Jupiter, Venus) 
+  // and are at specific degrees
+  function isPushkaraNavamsa(longitude) {
+    var normalLon = normalize(longitude);
+    var rashiIndex = Math.floor(normalLon / 30);
+    var degInSign = normalLon - (rashiIndex * 30);
+    var navPada = Math.floor(degInSign / (30 / 9));
+    // Pushkara Navamsas by rashi (0-indexed pada within the sign that are Pushkara)
+    var pushkaraMap = {
+      0: [6, 8],    // Aries: 7th and 9th navamsa
+      1: [2, 4],    // Taurus: 3rd and 5th navamsa
+      2: [5, 7],    // Gemini: 6th and 8th navamsa
+      3: [1, 3],    // Cancer: 2nd and 4th navamsa
+      4: [6, 8],    // Leo: 7th and 9th navamsa
+      5: [2, 4],    // Virgo: 3rd and 5th navamsa
+      6: [5, 7],    // Libra: 6th and 8th navamsa
+      7: [1, 3],    // Scorpio: 2nd and 4th navamsa
+      8: [6, 8],    // Sagittarius: 7th and 9th navamsa
+      9: [2, 4],    // Capricorn: 3rd and 5th navamsa
+      10: [5, 7],   // Aquarius: 6th and 8th navamsa
+      11: [1, 3]    // Pisces: 2nd and 4th navamsa
+    };
+    return (pushkaraMap[rashiIndex] || []).indexOf(navPada) >= 0;
+  }
+
+  function generateNavamsaReading(navAscSign, navAscLord, navRows, vargottama, seventhLord, planetsIn7th, venus, jupiter) {
+    var lines = [];
+
+    // Navamsa Lagna reading
+    lines.push(
+      "Navamsa Lagna " + SIGN_HINDI[navAscSign] + " (" + SIGN_NAMES[navAscSign] + ") hai, jo " +
+      SIGN_ELEMENTS[navAscSign].toLowerCase() + " tattva aur " + SIGN_QUALITIES[navAscSign].toLowerCase() +
+      " nature ka deep-level influence dikhata hai. Dharma path aur married life me " + navAscLord +
+      " ki position guide karegi."
+    );
+
+    // Vargottama planets
+    if (vargottama.length > 0) {
+      lines.push(
+        "Vargottama grah: " + vargottama.join(", ") +
+        " — ye D1 aur D9 dono me same rashi me hain, isliye inke results life me strongly manifest hote hain."
+      );
+    } else {
+      lines.push("Koi bhi grah vargottama nahi hai; deeper navamsa analysis se planet strengths samjhein.");
+    }
+
+    // 7th house and marriage
+    var marriageLine = "7th house lord " + seventhLord + " hai";
+    if (planetsIn7th.length > 0) {
+      marriageLine += " aur " + planetsIn7th.join(", ") + " 7th house me baithe hain";
+    }
+    marriageLine += ". ";
+    if (venus.strength >= 70) {
+      marriageLine += "Venus strong hai jo married life me harmony, love aur comfort indicate karta hai.";
+    } else if (venus.debilitated) {
+      marriageLine += "Venus debilitated hai — relationship me compromise aur patience ki zarurat rahegi; remedies helpful honge.";
+    } else {
+      marriageLine += "Venus average strength me hai — marriage me mutual effort aur understanding se stability aayegi.";
+    }
+    lines.push(marriageLine);
+
+    // Jupiter for dharma and wisdom
+    if (jupiter.strength >= 70) {
+      lines.push("Jupiter D9 me strong hai — dharma, wisdom aur guru-blessings life me support karenge. Spiritual growth natural rahega.");
+    } else if (jupiter.exalted) {
+      lines.push("Jupiter uccha (exalted) hai — ye param shubh hai; dharma, santaan aur fortune me divine grace milegi.");
+    } else {
+      lines.push("Jupiter ki D9 position suggest karti hai ki dharma path me conscious effort aur discipline rakhna beneficial hoga.");
+    }
+
+    // Strength-based insight
+    var strongest = navRows
+      .filter(function(r) { return r.planet !== "Rahu" && r.planet !== "Ketu"; })
+      .sort(function(a, b) { return b.strength - a.strength; })[0];
+    if (strongest) {
+      lines.push(
+        strongest.planet + " navamsa me sabse strong hai (house " + strongest.house +
+        ", " + strongest.rashi + ") — ye deep-level life themes me natural support ka source hai."
+      );
+    }
+
+    return lines;
+  }
+
   function generateKundli(input) {
     const chart = makeChart(input);
+    const navamsa = navamsaChart(input);
     return Object.assign(chart, {
+      navamsa: navamsa,
       reading: {
         personality: `${chart.ascendant.rashi} lagna native ko ${SIGN_ELEMENTS[SIGN_NAMES.indexOf(chart.ascendant.sign)].toLowerCase()} drive deta hai. Decision making me ${chart.ascendant.lord} ka role important rahega.`,
         mind: `${chart.moonSign.rashi} Moon aur ${chart.moonSign.nakshatra} nakshatra emotional instincts ko shape karta hai. Daily routine me consistency se clarity badhegi.`,
@@ -1491,6 +1758,7 @@
     },
     resolvePlace: resolvePlace,
     makeChart: makeChart,
+    navamsaChart: navamsaChart,
     generateKundli: generateKundli,
     dailyHoroscope: dailyHoroscope,
     panchang: panchang,
