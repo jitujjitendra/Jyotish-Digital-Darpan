@@ -1440,11 +1440,378 @@
     };
   }
 
+  // ========== YOGA DETECTION ==========
+  // Exaltation and own sign data for yoga detection
+  var EXALTATION_SIGNS = {
+    Sun: "Aries", Moon: "Taurus", Mars: "Capricorn",
+    Mercury: "Virgo", Jupiter: "Cancer", Venus: "Pisces",
+    Saturn: "Libra", Rahu: "Gemini", Ketu: "Sagittarius"
+  };
+
+  var OWN_SIGNS = {
+    Sun: ["Leo"],
+    Moon: ["Cancer"],
+    Mars: ["Aries", "Scorpio"],
+    Mercury: ["Gemini", "Virgo"],
+    Jupiter: ["Sagittarius", "Pisces"],
+    Venus: ["Taurus", "Libra"],
+    Saturn: ["Capricorn", "Aquarius"],
+    Rahu: ["Aquarius"],
+    Ketu: ["Scorpio"]
+  };
+
+  function isInOwnSign(planet, sign) {
+    return (OWN_SIGNS[planet] || []).indexOf(sign) >= 0;
+  }
+
+  function isExalted(planet, sign) {
+    return EXALTATION_SIGNS[planet] === sign;
+  }
+
+  function isInOwnOrExalted(planet, sign) {
+    return isInOwnSign(planet, sign) || isExalted(planet, sign);
+  }
+
+  function getHouseFromSign(planetSign, ascSign) {
+    var pIdx = SIGN_NAMES.indexOf(planetSign);
+    var aIdx = SIGN_NAMES.indexOf(ascSign);
+    return ((pIdx - aIdx + 12) % 12) + 1;
+  }
+
+  function getLordOfHouse(houseNum, ascSign) {
+    var ascIdx = SIGN_NAMES.indexOf(ascSign);
+    var signIdx = (ascIdx + houseNum - 1) % 12;
+    return SIGN_LORDS[signIdx];
+  }
+
+  function getSignOfHouse(houseNum, ascSign) {
+    var ascIdx = SIGN_NAMES.indexOf(ascSign);
+    var signIdx = (ascIdx + houseNum - 1) % 12;
+    return SIGN_NAMES[signIdx];
+  }
+
+  function getPlanetSign(chart, planetName) {
+    var p = chart.planets.find(function(r) { return r.planet === planetName; });
+    return p ? p.sign : null;
+  }
+
+  function getPlanetHouse(chart, planetName) {
+    var p = chart.planets.find(function(r) { return r.planet === planetName; });
+    return p ? p.house : 0;
+  }
+
+  function getPlanetLongitude(chart, planetName) {
+    var p = chart.planets.find(function(r) { return r.planet === planetName; });
+    return p ? p.longitude : 0;
+  }
+
+  function arePlanetsConjunct(chart, p1, p2) {
+    return getPlanetSign(chart, p1) === getPlanetSign(chart, p2);
+  }
+
+  function isPlanetInKendra(house) {
+    return [1, 4, 7, 10].indexOf(house) >= 0;
+  }
+
+  function isPlanetInTrikona(house) {
+    return [1, 5, 9].indexOf(house) >= 0;
+  }
+
+  function detectYogas(chart) {
+    var yogas = [];
+    var ascSign = chart.ascendant.sign;
+
+    // --- 1. Kendra-Trikona Raj Yoga ---
+    var kendraHouses = [1, 4, 7, 10];
+    var trikonaHouses = [1, 5, 9];
+    var kendraLords = kendraHouses.map(function(h) { return getLordOfHouse(h, ascSign); });
+    var trikonaLords = trikonaHouses.map(function(h) { return getLordOfHouse(h, ascSign); });
+
+    for (var ki = 0; ki < kendraLords.length; ki++) {
+      for (var ti = 0; ti < trikonaLords.length; ti++) {
+        var kl = kendraLords[ki];
+        var tl = trikonaLords[ti];
+        if (kl === tl) continue; // same planet cannot form yoga with itself here
+        var klSign = getPlanetSign(chart, kl);
+        var tlSign = getPlanetSign(chart, tl);
+        if (!klSign || !tlSign) continue;
+        // Conjunct or in each other's houses
+        var conjunct = (klSign === tlSign);
+        var klHouse = getHouseFromSign(klSign, ascSign);
+        var tlHouse = getHouseFromSign(tlSign, ascSign);
+        var kendraH = kendraHouses[ki];
+        var trikonaH = trikonaHouses[ti];
+        var inEachOthersHouse = (getSignOfHouse(kendraH, ascSign) === tlSign && getSignOfHouse(trikonaH, ascSign) === klSign);
+        if (conjunct || inEachOthersHouse) {
+          yogas.push({
+            name: "Kendra-Trikona Raj Yoga",
+            nameHindi: "\u0915\u0947\u0928\u094D\u0926\u094D\u0930-\u0924\u094D\u0930\u093F\u0915\u094B\u0923 \u0930\u093E\u091C \u092F\u094B\u0917",
+            type: "Shubh",
+            category: "Raj",
+            planets: [kl, tl],
+            description: kl + " (kendra lord) aur " + tl + " (trikona lord) ka sambandh hai - authority, status aur success milta hai.",
+            strength: conjunct ? "Strong" : "Moderate",
+            houses: [kendraH, trikonaH]
+          });
+          break; // one detection is enough
+        }
+      }
+      if (yogas.length > 0 && yogas[yogas.length - 1].name === "Kendra-Trikona Raj Yoga") break;
+    }
+
+    // --- 2. Dharma-Karmadhipati Yoga (9th + 10th lords) ---
+    var lord9 = getLordOfHouse(9, ascSign);
+    var lord10 = getLordOfHouse(10, ascSign);
+    if (lord9 !== lord10) {
+      var lord9Sign = getPlanetSign(chart, lord9);
+      var lord10Sign = getPlanetSign(chart, lord10);
+      if (lord9Sign && lord10Sign && lord9Sign === lord10Sign) {
+        yogas.push({
+          name: "Dharma-Karmadhipati Yoga",
+          nameHindi: "\u0927\u0930\u094D\u092E-\u0915\u0930\u094D\u092E\u093E\u0927\u093F\u092A\u0924\u093F \u092F\u094B\u0917",
+          type: "Shubh",
+          category: "Raj",
+          planets: [lord9, lord10],
+          description: "9th lord (" + lord9 + ") aur 10th lord (" + lord10 + ") ek saath hain - dharma aur karma ka sangam, high position aur fame milta hai.",
+          strength: "Strong",
+          houses: [9, 10]
+        });
+      }
+    }
+
+    // --- 3-7. Pancha Mahapurusha Yogas ---
+    var mahapurushaMap = [
+      { planet: "Mars", yoga: "Ruchaka Yoga", yogaHindi: "\u0930\u0941\u091A\u0915 \u092F\u094B\u0917", desc: "Mars own/exalted sign me kendra me hai - courage, leadership aur physical strength exceptional hai." },
+      { planet: "Mercury", yoga: "Bhadra Yoga", yogaHindi: "\u092D\u0926\u094D\u0930 \u092F\u094B\u0917", desc: "Mercury own/exalted sign me kendra me hai - intelligence, communication aur business me excellence hai." },
+      { planet: "Jupiter", yoga: "Hamsa Yoga", yogaHindi: "\u0939\u0902\u0938 \u092F\u094B\u0917", desc: "Jupiter own/exalted sign me kendra me hai - wisdom, spirituality aur respected position milti hai." },
+      { planet: "Venus", yoga: "Malavya Yoga", yogaHindi: "\u092E\u093E\u0932\u0935\u094D\u092F \u092F\u094B\u0917", desc: "Venus own/exalted sign me kendra me hai - luxury, arts aur relationship me sukh milta hai." },
+      { planet: "Saturn", yoga: "Shasha Yoga", yogaHindi: "\u0936\u0936 \u092F\u094B\u0917", desc: "Saturn own/exalted sign me kendra me hai - authority, discipline aur long-term success milta hai." }
+    ];
+
+    mahapurushaMap.forEach(function(mp) {
+      var pSign = getPlanetSign(chart, mp.planet);
+      var pHouse = getPlanetHouse(chart, mp.planet);
+      if (pSign && isInOwnOrExalted(mp.planet, pSign) && isPlanetInKendra(pHouse)) {
+        yogas.push({
+          name: mp.yoga,
+          nameHindi: mp.yogaHindi,
+          type: "Shubh",
+          category: "Pancha Mahapurusha",
+          planets: [mp.planet],
+          description: mp.desc,
+          strength: isExalted(mp.planet, pSign) ? "Strong" : "Moderate",
+          houses: [pHouse]
+        });
+      }
+    });
+
+    // --- 8. Lakshmi Yoga ---
+    var venusSign = getPlanetSign(chart, "Venus");
+    var venusHouse = getPlanetHouse(chart, "Venus");
+    var ninthLord = getLordOfHouse(9, ascSign);
+    var ninthLordHouse = getPlanetHouse(chart, ninthLord);
+    if (venusSign && isInOwnOrExalted("Venus", venusSign) &&
+        (isPlanetInKendra(venusHouse) || isPlanetInTrikona(venusHouse)) &&
+        (isPlanetInKendra(ninthLordHouse) || isPlanetInTrikona(ninthLordHouse))) {
+      yogas.push({
+        name: "Lakshmi Yoga",
+        nameHindi: "\u0932\u0915\u094D\u0937\u094D\u092E\u0940 \u092F\u094B\u0917",
+        type: "Shubh",
+        category: "Dhan",
+        planets: ["Venus", ninthLord],
+        description: "Venus strong hai aur 9th lord bhi achhi position me hai - wealth, luxury aur prosperity ka yoga hai.",
+        strength: isExalted("Venus", venusSign) ? "Strong" : "Moderate",
+        houses: [venusHouse, 9]
+      });
+    }
+
+    // --- 9. Dhan Yoga (2nd + 11th lords connected) ---
+    var lord2 = getLordOfHouse(2, ascSign);
+    var lord11 = getLordOfHouse(11, ascSign);
+    if (lord2 !== lord11) {
+      var lord2Sign = getPlanetSign(chart, lord2);
+      var lord11Sign = getPlanetSign(chart, lord11);
+      if (lord2Sign && lord11Sign && lord2Sign === lord11Sign) {
+        yogas.push({
+          name: "Dhan Yoga",
+          nameHindi: "\u0927\u0928 \u092F\u094B\u0917",
+          type: "Shubh",
+          category: "Dhan",
+          planets: [lord2, lord11],
+          description: "2nd lord (" + lord2 + ") aur 11th lord (" + lord11 + ") connected hain - wealth accumulation aur income growth strong hai.",
+          strength: "Moderate",
+          houses: [2, 11]
+        });
+      }
+    } else {
+      // Same planet is lord of both 2 and 11
+      var sameSign = getPlanetSign(chart, lord2);
+      if (sameSign && (isPlanetInKendra(getPlanetHouse(chart, lord2)) || isPlanetInTrikona(getPlanetHouse(chart, lord2)))) {
+        yogas.push({
+          name: "Dhan Yoga",
+          nameHindi: "\u0927\u0928 \u092F\u094B\u0917",
+          type: "Shubh",
+          category: "Dhan",
+          planets: [lord2],
+          description: lord2 + " dono 2nd aur 11th house ka lord hai aur strong position me hai - dhan yoga formed.",
+          strength: "Moderate",
+          houses: [2, 11]
+        });
+      }
+    }
+
+    // --- 10. Budhaditya Yoga (Sun + Mercury same sign, Mercury not combust) ---
+    var sunSign = getPlanetSign(chart, "Sun");
+    var mercSign = getPlanetSign(chart, "Mercury");
+    if (sunSign && mercSign && sunSign === mercSign) {
+      var sunLong = getPlanetLongitude(chart, "Sun");
+      var mercLong = getPlanetLongitude(chart, "Mercury");
+      var angularDiff = Math.abs(sunLong - mercLong);
+      if (angularDiff > 180) angularDiff = 360 - angularDiff;
+      if (angularDiff > 14) {
+        yogas.push({
+          name: "Budhaditya Yoga",
+          nameHindi: "\u092C\u0941\u0927\u093E\u0926\u093F\u0924\u094D\u092F \u092F\u094B\u0917",
+          type: "Shubh",
+          category: "Budhi",
+          planets: ["Sun", "Mercury"],
+          description: "Sun aur Mercury ek rashi me hain bina combustion ke - intelligence, communication aur analytical skills strong hain.",
+          strength: angularDiff > 20 ? "Strong" : "Moderate",
+          houses: [getPlanetHouse(chart, "Sun")]
+        });
+      }
+    }
+
+    // --- 11. Gajakesari Yoga (Jupiter in kendra from Moon) ---
+    var moonSign = chart.moonSign.sign;
+    var jupSign = getPlanetSign(chart, "Jupiter");
+    if (moonSign && jupSign) {
+      var moonIdx = SIGN_NAMES.indexOf(moonSign);
+      var jupIdx = SIGN_NAMES.indexOf(jupSign);
+      var distance = ((jupIdx - moonIdx + 12) % 12) + 1;
+      if ([1, 4, 7, 10].indexOf(distance) >= 0) {
+        yogas.push({
+          name: "Gajakesari Yoga",
+          nameHindi: "\u0917\u091C\u0915\u0947\u0938\u0930\u0940 \u092F\u094B\u0917",
+          type: "Shubh",
+          category: "Budhi",
+          planets: ["Jupiter", "Moon"],
+          description: "Jupiter Moon se kendra me hai - wisdom, reputation aur public respect ka yoga hai.",
+          strength: isInOwnOrExalted("Jupiter", jupSign) ? "Strong" : "Moderate",
+          houses: [getPlanetHouse(chart, "Jupiter"), getPlanetHouse(chart, "Moon")]
+        });
+      }
+    }
+
+    // --- 12. Kaal Sarp Yoga (all planets between Rahu-Ketu axis) ---
+    var rahuLong = getPlanetLongitude(chart, "Rahu");
+    var ketuLong = getPlanetLongitude(chart, "Ketu");
+    var otherPlanets = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"];
+    var allOnOneSide = true;
+    var betweenRahuKetu = 0;
+    var betweenKetuRahu = 0;
+
+    otherPlanets.forEach(function(planet) {
+      var pLong = getPlanetLongitude(chart, planet);
+      // Check if planet is between Rahu and Ketu (going forward from Rahu to Ketu)
+      var isBetweenRK;
+      if (rahuLong < ketuLong) {
+        isBetweenRK = (pLong > rahuLong && pLong < ketuLong);
+      } else {
+        isBetweenRK = (pLong > rahuLong || pLong < ketuLong);
+      }
+      if (isBetweenRK) {
+        betweenRahuKetu++;
+      } else {
+        betweenKetuRahu++;
+      }
+    });
+
+    if (betweenRahuKetu === 7 || betweenKetuRahu === 7) {
+      yogas.push({
+        name: "Kaal Sarp Yoga",
+        nameHindi: "\u0915\u093E\u0932 \u0938\u0930\u094D\u092A \u092F\u094B\u0917",
+        type: "Ashubh",
+        category: "Dosha",
+        planets: ["Rahu", "Ketu"],
+        description: "Sab grah Rahu-Ketu axis ke ek taraf hain - karmic challenges aur unexpected ups-downs aate hain. Remedies se shanti milti hai.",
+        strength: "Strong",
+        houses: [getPlanetHouse(chart, "Rahu"), getPlanetHouse(chart, "Ketu")]
+      });
+    }
+
+    // --- 13. Mangal Dosha ---
+    var marsHouse = getPlanetHouse(chart, "Mars");
+    var mangalDoshaHouses = [1, 2, 4, 7, 8, 12];
+    if (mangalDoshaHouses.indexOf(marsHouse) >= 0) {
+      yogas.push({
+        name: "Mangal Dosha",
+        nameHindi: "\u092E\u0902\u0917\u0932 \u0926\u094B\u0937",
+        type: "Ashubh",
+        category: "Dosha",
+        planets: ["Mars"],
+        description: "Mars house " + marsHouse + " me hai - marriage aur partnership me caution aur matching zaruri hai. Remedies se balance aata hai.",
+        strength: [7, 8].indexOf(marsHouse) >= 0 ? "Strong" : "Moderate",
+        houses: [marsHouse]
+      });
+    }
+
+    // --- 14. Kemdrum Yoga (Moon isolated - no planet in 2nd or 12th from Moon) ---
+    var moonHouse = getPlanetHouse(chart, "Moon");
+    var houseBeforeMoon = moonHouse === 1 ? 12 : moonHouse - 1; // 12th from Moon
+    var houseAfterMoon = moonHouse === 12 ? 1 : moonHouse + 1;   // 2nd from Moon
+    var planetsNearMoon = chart.planets.filter(function(p) {
+      return p.planet !== "Moon" && p.planet !== "Rahu" && p.planet !== "Ketu" &&
+             (p.house === houseBeforeMoon || p.house === houseAfterMoon);
+    });
+    if (planetsNearMoon.length === 0) {
+      yogas.push({
+        name: "Kemdrum Yoga",
+        nameHindi: "\u0915\u0947\u092E\u0926\u094D\u0930\u0941\u092E \u092F\u094B\u0917",
+        type: "Ashubh",
+        category: "Dosha",
+        planets: ["Moon"],
+        description: "Moon ke aas-paas koi grah nahi hai - emotional isolation aur financial ups-downs ho sakte hain. Strong Moon isko reduce karta hai.",
+        strength: "Moderate",
+        houses: [moonHouse]
+      });
+    }
+
+    // --- 15. Vairagi Yoga (Saturn influences 1st, 5th, 9th) ---
+    var saturnHouse = getPlanetHouse(chart, "Saturn");
+    // Saturn aspects: 3rd, 7th, 10th from its position
+    var saturnAspects = [
+      saturnHouse,
+      ((saturnHouse + 2 - 1) % 12) + 1,  // 3rd from Saturn
+      ((saturnHouse + 6 - 1) % 12) + 1,  // 7th from Saturn
+      ((saturnHouse + 9 - 1) % 12) + 1   // 10th from Saturn
+    ];
+    var influencesHouse1 = saturnAspects.indexOf(1) >= 0;
+    var influencesHouse5 = saturnAspects.indexOf(5) >= 0;
+    var influencesHouse9 = saturnAspects.indexOf(9) >= 0;
+    if (influencesHouse1 && influencesHouse5 && influencesHouse9) {
+      yogas.push({
+        name: "Vairagi Yoga",
+        nameHindi: "\u0935\u0948\u0930\u093E\u0917\u0940 \u092F\u094B\u0917",
+        type: "Mixed",
+        category: "Spiritual",
+        planets: ["Saturn"],
+        description: "Saturn 1st, 5th aur 9th houses ko influence karta hai - spiritual detachment, renunciation tendency aur deep wisdom milti hai.",
+        strength: isInOwnOrExalted("Saturn", getPlanetSign(chart, "Saturn")) ? "Strong" : "Moderate",
+        houses: [1, 5, 9]
+      });
+    }
+
+    return yogas;
+  }
+
   function generateKundli(input) {
     const chart = makeChart(input);
     const navamsa = navamsaChart(input);
+    const yogas = detectYogas(chart);
     return Object.assign(chart, {
       navamsa: navamsa,
+      yogas: yogas,
       reading: {
         personality: `${chart.ascendant.rashi} lagna native ko ${SIGN_ELEMENTS[SIGN_NAMES.indexOf(chart.ascendant.sign)].toLowerCase()} drive deta hai. Decision making me ${chart.ascendant.lord} ka role important rahega.`,
         mind: `${chart.moonSign.rashi} Moon aur ${chart.moonSign.nakshatra} nakshatra emotional instincts ko shape karta hai. Daily routine me consistency se clarity badhegi.`,
@@ -2145,6 +2512,7 @@
     drekkanaChart: drekkanaChart,
     dashamChart: dashamChart,
     divisionalCharts: divisionalCharts,
+    detectYogas: detectYogas,
     generateKundli: generateKundli,
     dailyHoroscope: dailyHoroscope,
     panchang: panchang,

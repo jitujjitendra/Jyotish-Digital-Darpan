@@ -586,3 +586,96 @@ assert.strictEqual(drek1.chartTypeHindi, "\u0926\u094D\u0930\u0947\u0915\u094D\u
 assert.strictEqual(dash1.chartTypeHindi, "\u0926\u0936\u092E\u093E\u0902\u0936 (D10)");
 
 console.log("All Divisional Charts (D2, D3, D10) tests passed.");
+
+// ========== YOGA DETECTION TESTS ==========
+
+// Test 1: detectYogas returns an array
+var yogaChart = engine.makeChart({
+  name: "Yoga Test",
+  date: "1990-01-15",
+  time: "08:30",
+  place: "Delhi"
+});
+var yogas = engine.detectYogas(yogaChart);
+assert.ok(Array.isArray(yogas), "detectYogas should return an array");
+
+// Test 2: Each detected yoga has the correct structure
+yogas.forEach(function(yoga, idx) {
+  assert.ok(yoga.name, "Yoga " + idx + " should have name");
+  assert.ok(yoga.nameHindi, "Yoga " + idx + " should have nameHindi");
+  assert.ok(["Shubh", "Ashubh", "Mixed"].indexOf(yoga.type) >= 0,
+    "Yoga " + idx + " type should be Shubh/Ashubh/Mixed, got " + yoga.type);
+  assert.ok(yoga.category, "Yoga " + idx + " should have category");
+  assert.ok(Array.isArray(yoga.planets), "Yoga " + idx + " planets should be an array");
+  assert.ok(yoga.planets.length > 0, "Yoga " + idx + " should have at least one planet");
+  assert.ok(yoga.description, "Yoga " + idx + " should have description");
+  assert.ok(["Strong", "Moderate", "Weak"].indexOf(yoga.strength) >= 0,
+    "Yoga " + idx + " strength should be Strong/Moderate/Weak, got " + yoga.strength);
+  assert.ok(Array.isArray(yoga.houses), "Yoga " + idx + " houses should be an array");
+});
+
+// Test 3: generateKundli includes yogas
+var kundliYoga = engine.generateKundli({
+  name: "Kundli Yoga Test",
+  date: "1990-01-15",
+  time: "08:30",
+  place: "Delhi"
+});
+assert.ok(Array.isArray(kundliYoga.yogas), "generateKundli should include yogas array");
+
+// Test 4: Test with a chart known to have Mangal Dosha (Mars in house 1,2,4,7,8,12)
+// Create multiple charts and verify Mangal Dosha is detected when Mars is in those houses
+var chartForMangal = engine.makeChart({
+  name: "Mangal Test",
+  date: "1992-03-17",
+  time: "14:00",
+  place: "Delhi"
+});
+var mangalYogas = engine.detectYogas(chartForMangal);
+var marsHouseInChart = chartForMangal.planets.find(function(p) { return p.planet === "Mars"; }).house;
+var hasMangalYoga = mangalYogas.some(function(y) { return y.name === "Mangal Dosha"; });
+if ([1, 2, 4, 7, 8, 12].indexOf(marsHouseInChart) >= 0) {
+  assert.ok(hasMangalYoga, "Should detect Mangal Dosha when Mars is in house " + marsHouseInChart);
+} else {
+  assert.ok(!hasMangalYoga, "Should NOT detect Mangal Dosha when Mars is in house " + marsHouseInChart);
+}
+
+// Test 5: Test Gajakesari Yoga detection logic
+// Jupiter in kendra (1,4,7,10) from Moon
+var chartGK = engine.makeChart({
+  name: "GK Test",
+  date: "1985-06-10",
+  time: "06:00",
+  place: "Mumbai"
+});
+var gkYogas = engine.detectYogas(chartGK);
+var moonSignGK = chartGK.moonSign.sign;
+var jupiterPlanet = chartGK.planets.find(function(p) { return p.planet === "Jupiter"; });
+var moonIdxGK = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"].indexOf(moonSignGK);
+var jupIdxGK = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"].indexOf(jupiterPlanet.sign);
+var distGK = ((jupIdxGK - moonIdxGK + 12) % 12) + 1;
+var shouldHaveGK = [1, 4, 7, 10].indexOf(distGK) >= 0;
+var hasGK = gkYogas.some(function(y) { return y.name === "Gajakesari Yoga"; });
+assert.strictEqual(hasGK, shouldHaveGK,
+  "Gajakesari Yoga detection should match kendra condition (distance=" + distGK + ")");
+
+// Test 6: Yoga categories are valid
+var validCategories = ["Raj", "Dhan", "Budhi", "Dosha", "Spiritual", "Pancha Mahapurusha"];
+yogas.forEach(function(yoga) {
+  assert.ok(validCategories.indexOf(yoga.category) >= 0,
+    "Yoga category should be valid, got " + yoga.category);
+});
+
+// Test 7: Multiple charts produce yogas (at least some charts should have yogas)
+var charts = [
+  engine.makeChart({ date: "1980-01-01", time: "06:00", place: "Delhi" }),
+  engine.makeChart({ date: "1995-07-20", time: "15:00", place: "Mumbai" }),
+  engine.makeChart({ date: "2000-12-31", time: "23:59", place: "Kolkata" })
+];
+var totalYogas = 0;
+charts.forEach(function(c) {
+  totalYogas += engine.detectYogas(c).length;
+});
+assert.ok(totalYogas > 0, "At least some charts should have detectable yogas");
+
+console.log("All Yoga Detection tests passed.");
