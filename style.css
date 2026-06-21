@@ -1,4 +1,8 @@
 /* Main Stylesheet for Jyotish Digital Darpan */
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
   --primary: #7c3aed;
   --primary-dark: #5b21b6;
@@ -26,6 +30,26 @@ body {
   padding: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Skip to content link */
+.skip-to-content {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 0 0 8px 8px;
+  z-index: 9999;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.3s ease;
+}
+
+.skip-to-content:focus {
+  top: 0;
 }
 
 /* Cosmic Background */
@@ -65,10 +89,21 @@ body {
   height: 4px;
   border-radius: 50%;
   background-color: #fff;
-  box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.8), -20px 0 6px rgba(168, 85, 247, 0.4);
   animation: shoot linear forwards;
   will-change: transform, opacity;
   backface-visibility: hidden;
+}
+
+.shooting-star::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.6), transparent);
+  transform: translateY(-50%);
 }
 
 @keyframes shoot {
@@ -130,7 +165,7 @@ body {
     rgba(138, 43, 226, 0.05) 80%, 
     transparent);
   transform: rotate(-5deg);
-  animation: milky-way-move linear infinite;
+  animation: milky-way-move 200s linear infinite;
   will-change: transform;
   backface-visibility: hidden;
 }
@@ -147,6 +182,7 @@ body {
   height: 300px;
   border-radius: 50%;
   background: radial-gradient(circle at center, transparent 30%, rgba(156, 39, 176, 0.1) 70%);
+  box-shadow: 0 0 40px rgba(156, 39, 176, 0.05);
   opacity: 0.5;
   animation: rotate-galaxy linear infinite;
   will-change: transform;
@@ -172,6 +208,7 @@ body {
 .header {
   background-color: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(109, 40, 217, 0.3);
   position: fixed;
   top: 0;
@@ -189,10 +226,73 @@ body {
   text-shadow: 0 0 10px rgba(217, 70, 239, 0.5);
 }
 
-/* Card Styles */
+/* ==================== MOBILE HAMBURGER MENU ==================== */
+
+#hamburgerBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  z-index: 51;
+}
+
+.hamburger-line {
+  transition: all 0.3s ease;
+}
+
+/* Mobile Menu Overlay */
+.mobile-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(9, 6, 17, 0.98);
+  z-index: 9998;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(100%);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-menu-overlay.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.mobile-menu-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.mobile-nav-link {
+  color: #e5e7eb;
+  text-decoration: none;
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.mobile-nav-link:hover,
+.mobile-nav-link:active {
+  color: var(--primary-light);
+  background: rgba(124, 58, 237, 0.1);
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
+/* ==================== CARD STYLES ==================== */
+
+/* Service Cards - Glassmorphism */
 .service-card {
-  background: rgba(39, 39, 42, 0.5);
-  backdrop-filter: blur(10px);
+  background: rgba(39, 39, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(109, 40, 217, 0.3);
   transition: all 0.3s ease;
   transform: translateZ(0);
@@ -202,7 +302,12 @@ body {
 .service-card:hover {
   transform: translateY(-5px) translateZ(0);
   border-color: rgba(168, 85, 247, 0.6);
-  box-shadow: 0 10px 25px rgba(124, 58, 237, 0.2);
+  box-shadow: 0 10px 30px rgba(124, 58, 237, 0.25), 0 0 15px rgba(168, 85, 247, 0.1);
+}
+
+.service-icon {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.3), rgba(168, 85, 247, 0.15));
+  border: 1px solid rgba(168, 85, 247, 0.3);
 }
 
 .zodiac-sign {
@@ -212,8 +317,8 @@ body {
 }
 
 .zodiac-sign:hover {
-  transform: scale(1.1) translateZ(0);
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+  transform: scale(1.08) translateZ(0);
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
 }
 
 .blog-card {
@@ -224,7 +329,7 @@ body {
 
 .blog-card:hover {
   transform: translateY(-5px) scale(1.02) translateZ(0);
-  box-shadow: 0 10px 20px rgba(156, 39, 176, 0.3);
+  box-shadow: 0 10px 25px rgba(156, 39, 176, 0.3);
 }
 
 /* Zodiac Circle */
@@ -237,14 +342,40 @@ body {
   justify-content: center;
   margin: 0 auto 10px;
   font-size: 32px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
   border: 2px solid;
   transition: all 0.3s ease;
   transform: translateZ(0);
   backface-visibility: hidden;
 }
 
-/* Form Elements */
+/* ==================== VISUAL ENHANCEMENTS ==================== */
+
+/* Cosmic text shadow on headings */
+h1, h2, h3 {
+  text-shadow: 0 0 20px rgba(124, 58, 237, 0.15);
+}
+
+/* Purple glow on interactive elements */
+button:hover, a:hover {
+  text-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+}
+
+/* Loading skeleton animation */
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: var(--border-radius);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ==================== FORM ELEMENTS ==================== */
+
 input, select, textarea {
   background-color: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -317,23 +448,44 @@ input:focus, select:focus, textarea:focus {
   }
 }
 
-/* Mobile Optimizations */
+/* ==================== MOBILE OPTIMIZATIONS ==================== */
+
 @media (max-width: 768px) {
-  /* Reduce animations for mobile */
-  .planet, .galaxy, .milky-way {
-    animation-duration: calc(var(--original-duration) * 1.5) !important;
+  /* Show stars on mobile (reduced count handled in JS) */
+  .star {
+    display: block;
   }
-  
-  /* Simplify background for mobile */
-  .cosmic-bg {
-    background: var(--bg-dark);
-  }
-  
-  /* Reduce number of animated elements */
-  .star, .shooting-star {
+
+  /* Hide galaxies on mobile for performance */
+  .galaxy {
     display: none;
   }
-  
+
+  /* Smaller planets on mobile */
+  .planet {
+    transform: scale(0.6);
+  }
+
+  .sun {
+    width: 60px;
+    height: 60px;
+  }
+
+  .milky-way {
+    opacity: 0.4;
+  }
+
+  /* Stack grids properly */
+  .grid.grid-cols-4,
+  .grid.md\:grid-cols-4 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Zodiac 2 columns on mobile */
+  .grid.grid-cols-4.sm\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   /* Improve touch scrolling */
   body {
     overflow: auto;
@@ -346,26 +498,37 @@ input:focus, select:focus, textarea:focus {
     -webkit-overflow-scrolling: touch;
   }
   
-  /* Optimize card layouts */
-  .service-card, .zodiac-sign, .blog-card {
-    transform: none !important;
+  /* Optimize card layouts - reduce motion */
+  .service-card:hover, .blog-card:hover {
+    transform: none;
   }
   
-  .service-card:hover, .zodiac-sign:hover, .blog-card:hover {
-    transform: none !important;
+  .zodiac-sign:hover {
+    transform: scale(1.05);
   }
-  
+
   /* Adjust header for mobile */
   .header {
-    padding: 1rem;
-  }
-  
-  .nav-link {
-    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
   }
 }
 
-/* Utility Classes */
+/* Prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .star, .shooting-star, .planet, .galaxy, .milky-way, .sun {
+    animation: none !important;
+  }
+
+  .galaxy {
+    display: none;
+  }
+
+  .service-card, .blog-card, .zodiac-sign {
+    transition: none;
+  }
+}
+
+/* ==================== UTILITY CLASSES ==================== */
 .text-center { text-align: center; }
 .text-purple { color: var(--primary); }
 .bg-dark { background-color: var(--bg-dark); }
@@ -384,7 +547,7 @@ input:focus, select:focus, textarea:focus {
   backface-visibility: hidden;
 }
 
-/* Modal Styles */
+/* ==================== MODAL STYLES ==================== */
 .modal {
   position: fixed;
   top: 0;
@@ -419,4 +582,303 @@ input:focus, select:focus, textarea:focus {
 
 .modal.active .modal-content {
   transform: translateY(0);
+}
+
+/* ==================== CHATBOT STYLES ==================== */
+#jyotishChatbot {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  font-family: 'Inter', sans-serif;
+}
+
+#chatbotToggle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.5);
+  animation: chatGlow 2s ease-in-out infinite;
+  transition: transform 0.2s;
+}
+
+#chatbotToggle:hover {
+  transform: scale(1.1);
+}
+
+.chatbot-icon {
+  font-size: 28px;
+}
+
+@keyframes chatGlow {
+  0%, 100% { box-shadow: 0 4px 20px rgba(124, 58, 237, 0.5); }
+  50% { box-shadow: 0 4px 30px rgba(168, 85, 247, 0.8), 0 0 40px rgba(124, 58, 237, 0.3); }
+}
+
+#chatPanel {
+  position: absolute;
+  bottom: 72px;
+  right: 0;
+  width: 380px;
+  max-height: 520px;
+  background: #1a1a2e;
+  border-radius: 16px;
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+#chatPanel.chat-hidden {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  pointer-events: none;
+}
+
+.chat-header {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat-header-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chat-avatar {
+  font-size: 24px;
+}
+
+.chat-title {
+  font-weight: 700;
+  color: #fff;
+  font-size: 15px;
+}
+
+.chat-subtitle {
+  font-size: 11px;
+  color: #e9d5ff;
+}
+
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-clear-btn {
+  background: none;
+  border: none;
+  color: #e9d5ff;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.chat-clear-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+.chat-close-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 250px;
+  max-height: 320px;
+}
+
+.chat-msg {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.chat-msg.bot {
+  align-self: flex-start;
+  background: #2d2b42;
+  color: #e5e7eb;
+  border-bottom-left-radius: 4px;
+}
+
+.chat-msg.user {
+  align-self: flex-end;
+  background: #7c3aed;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-typing {
+  align-self: flex-start;
+  padding: 10px 14px;
+  background: #2d2b42;
+  border-radius: 12px;
+  border-bottom-left-radius: 4px;
+}
+
+.typing-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.typing-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a78bfa;
+  animation: typingBounce 1.4s infinite;
+}
+
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+}
+
+.chat-quick-replies {
+  padding: 8px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chat-quick-btn {
+  background: rgba(124, 58, 237, 0.15);
+  border: 1px solid rgba(124, 58, 237, 0.4);
+  color: #c4b5fd;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.chat-quick-btn:hover {
+  background: rgba(124, 58, 237, 0.3);
+  color: #fff;
+}
+
+.chat-input-area {
+  display: flex;
+  padding: 12px;
+  border-top: 1px solid rgba(124, 58, 237, 0.2);
+  gap: 8px;
+}
+
+#chatInput {
+  flex: 1;
+  background: #2d2b42;
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 20px;
+  padding: 8px 16px;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+}
+
+#chatInput:focus {
+  border-color: #7c3aed;
+}
+
+#chatSend {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #7c3aed;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+#chatSend:hover {
+  background: #6d28d9;
+}
+
+/* Social Share Buttons */
+.share-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.share-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.2s;
+}
+
+.share-btn:hover {
+  opacity: 0.85;
+}
+
+.share-btn.whatsapp {
+  background: #25D366;
+  color: #fff;
+}
+
+.share-btn.twitter {
+  background: #1DA1F2;
+  color: #fff;
+}
+
+.share-btn.copy-link {
+  background: #4b5563;
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  #chatPanel {
+    width: calc(100vw - 32px);
+    right: -8px;
+    bottom: 68px;
+    max-height: 70vh;
+  }
+  
+  #jyotishChatbot {
+    bottom: 16px;
+    right: 16px;
+  }
 }

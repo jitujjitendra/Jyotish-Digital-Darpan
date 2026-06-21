@@ -7,6 +7,23 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
+  // Detect precision ephemeris module (loaded separately)
+  var _precisionEphemeris = null;
+  function getPrecisionEphemeris() {
+    if (_precisionEphemeris) return _precisionEphemeris;
+    if (typeof PrecisionEphemeris !== "undefined") {
+      _precisionEphemeris = PrecisionEphemeris;
+      return _precisionEphemeris;
+    }
+    if (typeof module === "object" && module.exports) {
+      try {
+        _precisionEphemeris = require("./precision-ephemeris");
+        return _precisionEphemeris;
+      } catch (e) { /* precision module not available */ }
+    }
+    return null;
+  }
+
   const SIGN_NAMES = [
     "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
     "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
@@ -57,6 +74,74 @@
     "Horse", "Elephant", "Sheep", "Serpent", "Serpent", "Dog", "Cat", "Sheep", "Cat",
     "Rat", "Rat", "Cow", "Buffalo", "Tiger", "Buffalo", "Tiger", "Deer", "Deer",
     "Dog", "Monkey", "Mongoose", "Monkey", "Lion", "Horse", "Lion", "Cow", "Elephant"
+  ];
+
+  // Classical Nakshatra-to-Varna mapping (Brahmin=4, Kshatriya=3, Vaishya=2, Shudra=1)
+  const NAKSHATRA_VARNA = [
+    "Kshatriya", "Shudra", "Brahmin", "Shudra", "Vaishya", "Shudra",
+    "Vaishya", "Kshatriya", "Shudra", "Kshatriya", "Brahmin", "Kshatriya",
+    "Vaishya", "Vaishya", "Shudra", "Brahmin", "Shudra", "Vaishya",
+    "Shudra", "Brahmin", "Kshatriya", "Shudra", "Vaishya", "Shudra",
+    "Brahmin", "Kshatriya", "Shudra"
+  ];
+
+  // Detailed Yoni mapping with animal and gender for each nakshatra
+  const NAKSHATRA_YONI_DETAILED = [
+    { animal: "Horse", gender: "M" },
+    { animal: "Elephant", gender: "M" },
+    { animal: "Sheep", gender: "F" },
+    { animal: "Serpent", gender: "M" },
+    { animal: "Serpent", gender: "F" },
+    { animal: "Dog", gender: "F" },
+    { animal: "Cat", gender: "F" },
+    { animal: "Sheep", gender: "M" },
+    { animal: "Cat", gender: "M" },
+    { animal: "Rat", gender: "M" },
+    { animal: "Rat", gender: "F" },
+    { animal: "Cow", gender: "M" },
+    { animal: "Buffalo", gender: "F" },
+    { animal: "Tiger", gender: "F" },
+    { animal: "Buffalo", gender: "M" },
+    { animal: "Tiger", gender: "M" },
+    { animal: "Deer", gender: "F" },
+    { animal: "Deer", gender: "M" },
+    { animal: "Dog", gender: "M" },
+    { animal: "Monkey", gender: "M" },
+    { animal: "Mongoose", gender: "M" },
+    { animal: "Monkey", gender: "F" },
+    { animal: "Lion", gender: "F" },
+    { animal: "Horse", gender: "F" },
+    { animal: "Lion", gender: "M" },
+    { animal: "Cow", gender: "F" },
+    { animal: "Elephant", gender: "F" }
+  ];
+
+  // Vashya category for each rashi (sign)
+  const SIGN_VASHYA = [
+    "Chatushpada", "Chatushpada", "Manava", "Jalachara", "Vanachara", "Manava",
+    "Manava", "Keeta", "Chatushpada", "Chatushpada", "Manava", "Jalachara"
+  ];
+
+  // Classical Graha Maitri (planetary friendship) table
+  const GRAHA_MAITRI_TABLE = {
+    Sun:     { friends: ["Moon", "Mars", "Jupiter"], neutrals: ["Mercury"], enemies: ["Venus", "Saturn"] },
+    Moon:    { friends: ["Sun", "Mercury"], neutrals: ["Mars", "Jupiter", "Venus", "Saturn"], enemies: [] },
+    Mars:    { friends: ["Sun", "Moon", "Jupiter"], neutrals: ["Venus", "Saturn"], enemies: ["Mercury"] },
+    Mercury: { friends: ["Sun", "Venus"], neutrals: ["Mars", "Jupiter", "Saturn"], enemies: ["Moon"] },
+    Jupiter: { friends: ["Sun", "Moon", "Mars"], neutrals: ["Saturn"], enemies: ["Mercury", "Venus"] },
+    Venus:   { friends: ["Mercury", "Saturn"], neutrals: ["Mars", "Jupiter"], enemies: ["Sun", "Moon"] },
+    Saturn:  { friends: ["Mercury", "Venus"], neutrals: ["Jupiter"], enemies: ["Sun", "Moon", "Mars"] }
+  };
+
+  // Yoni enemy pairs (sworn enemies)
+  const YONI_ENEMIES = [
+    ["Horse", "Buffalo"],
+    ["Elephant", "Lion"],
+    ["Sheep", "Monkey"],
+    ["Serpent", "Mongoose"],
+    ["Dog", "Deer"],
+    ["Cat", "Rat"],
+    ["Cow", "Tiger"]
   ];
 
   const DASHA_YEARS = {
@@ -427,6 +512,11 @@
   }
 
   function ayanamsa(jd) {
+    var pe = getPrecisionEphemeris();
+    if (pe && pe.precisionAyanamsa) {
+      return pe.precisionAyanamsa(jd);
+    }
+    // Fallback: simple linear approximation
     const year = 2000 + (jd - 2451545.0) / 365.2425;
     return 23.85675 + 0.013968 * (year - 2000);
   }
@@ -470,6 +560,13 @@
   }
 
   function planetaryLongitudes(jd) {
+    // Use precision ephemeris if available
+    var pe = getPrecisionEphemeris();
+    if (pe && pe.precisionLongitudes) {
+      return pe.precisionLongitudes(jd);
+    }
+
+    // Fallback: approximate calculations
     const d = jd - 2451545.0;
     const t = d / 36525;
     const lahiri = ayanamsa(jd);
@@ -585,37 +682,164 @@
     ];
   }
 
-  function currentDasha(moonLongitude, birthDate) {
-    const nak = nakshatraInfo(moonLongitude);
-    const lord = nak.lord;
-    const years = DASHA_YEARS[lord];
-    const balanceYears = (1 - nak.percent) * years;
-    const startIndex = DASHA_SEQUENCE.indexOf(lord);
-    const sequence = [];
-    let cursorYear = 0;
+  function addYearsToDate(date, years) {
+    var ms = date.getTime() + years * 365.2425 * 24 * 60 * 60 * 1000;
+    return new Date(ms);
+  }
 
-    for (let i = 0; i < 9; i += 1) {
-      const planet = DASHA_SEQUENCE[(startIndex + i) % DASHA_SEQUENCE.length];
-      const length = i === 0 ? balanceYears : DASHA_YEARS[planet];
-      sequence.push({
+  function formatDateISO(d) {
+    var y = d.getUTCFullYear();
+    var m = d.getUTCMonth() + 1;
+    var day = d.getUTCDate();
+    return y + "-" + pad2(m) + "-" + pad2(day);
+  }
+
+  function dashaSequenceFrom(startPlanet) {
+    var idx = DASHA_SEQUENCE.indexOf(startPlanet);
+    var seq = [];
+    for (var i = 0; i < 9; i++) {
+      seq.push(DASHA_SEQUENCE[(idx + i) % 9]);
+    }
+    return seq;
+  }
+
+  function currentDasha(moonLongitude, birthDate) {
+    var nak = nakshatraInfo(moonLongitude);
+    var lord = nak.lord;
+    var years = DASHA_YEARS[lord];
+    var balanceYears = (1 - nak.percent) * years;
+    var startIndex = DASHA_SEQUENCE.indexOf(lord);
+
+    // Build full 9 mahadasha sequence with actual dates
+    var birthMs = birthDate ? birthDate.getTime() : Date.now();
+    var birthD = new Date(birthMs);
+    var fullSequence = [];
+    var cursorDate = new Date(birthMs);
+
+    for (var i = 0; i < 9; i++) {
+      var planet = DASHA_SEQUENCE[(startIndex + i) % 9];
+      var length = (i === 0) ? balanceYears : DASHA_YEARS[planet];
+      var startDate = new Date(cursorDate.getTime());
+      var endDate = addYearsToDate(cursorDate, length);
+      fullSequence.push({
         planet: planet,
-        years: Number(length.toFixed(2)),
-        fromYear: Number(cursorYear.toFixed(2)),
-        toYear: Number((cursorYear + length).toFixed(2))
+        totalYears: Number(length.toFixed(4)),
+        startDate: formatDateISO(startDate),
+        endDate: formatDateISO(endDate)
       });
-      cursorYear += length;
+      cursorDate = endDate;
     }
 
-    const age = birthDate ? Math.max(0, (Date.now() - birthDate.getTime()) / (365.2425 * 24 * 60 * 60 * 1000)) : 0;
-    const active = sequence.find(function (item) {
-      return age >= item.fromYear && age < item.toYear;
-    }) || sequence[sequence.length - 1];
+    // Find active mahadasha based on current date
+    var now = new Date(Date.now());
+    var activeMD = null;
+    for (var m = 0; m < fullSequence.length; m++) {
+      var mdStart = new Date(fullSequence[m].startDate + "T00:00:00Z");
+      var mdEnd = new Date(fullSequence[m].endDate + "T00:00:00Z");
+      if (now >= mdStart && now < mdEnd) {
+        activeMD = fullSequence[m];
+        break;
+      }
+    }
+    if (!activeMD) activeMD = fullSequence[fullSequence.length - 1];
+
+    // Build antardasha sequence within the active mahadasha
+    var mdPlanet = activeMD.planet;
+    var mdYears = activeMD.totalYears;
+    var mdStartDate = new Date(activeMD.startDate + "T00:00:00Z");
+    var adSequence = dashaSequenceFrom(mdPlanet);
+    var antardashaList = [];
+    var adCursor = new Date(mdStartDate.getTime());
+
+    for (var a = 0; a < 9; a++) {
+      var adPlanet = adSequence[a];
+      var adYears = (mdYears * DASHA_YEARS[adPlanet]) / 120;
+      var adStart = new Date(adCursor.getTime());
+      var adEnd = addYearsToDate(adCursor, adYears);
+      antardashaList.push({
+        mahadasha: mdPlanet,
+        antardasha: adPlanet,
+        totalYears: Number(adYears.toFixed(4)),
+        from: formatDateISO(adStart),
+        to: formatDateISO(adEnd)
+      });
+      adCursor = adEnd;
+    }
+
+    // Find active antardasha
+    var activeAD = null;
+    for (var b = 0; b < antardashaList.length; b++) {
+      var aStart = new Date(antardashaList[b].from + "T00:00:00Z");
+      var aEnd = new Date(antardashaList[b].to + "T00:00:00Z");
+      if (now >= aStart && now < aEnd) {
+        activeAD = antardashaList[b];
+        break;
+      }
+    }
+    if (!activeAD) activeAD = antardashaList[antardashaList.length - 1];
+
+    // Build pratyantar dasha sequence within the active antardasha
+    var adActivePlanet = activeAD.antardasha;
+    var adActiveYears = activeAD.totalYears;
+    var adActiveStart = new Date(activeAD.from + "T00:00:00Z");
+    var pdSequence = dashaSequenceFrom(adActivePlanet);
+    var pratyantarList = [];
+    var pdCursor = new Date(adActiveStart.getTime());
+
+    for (var p = 0; p < 9; p++) {
+      var pdPlanet = pdSequence[p];
+      var pdYears = (adActiveYears * DASHA_YEARS[pdPlanet]) / 120;
+      var pdDays = pdYears * 365.2425;
+      var pdStart = new Date(pdCursor.getTime());
+      var pdEnd = addYearsToDate(pdCursor, pdYears);
+      pratyantarList.push({
+        planet: pdPlanet,
+        totalDays: Math.round(pdDays),
+        from: formatDateISO(pdStart),
+        to: formatDateISO(pdEnd)
+      });
+      pdCursor = pdEnd;
+    }
+
+    // Find active pratyantar
+    var activePD = null;
+    for (var c = 0; c < pratyantarList.length; c++) {
+      var pStart = new Date(pratyantarList[c].from + "T00:00:00Z");
+      var pEnd = new Date(pratyantarList[c].to + "T00:00:00Z");
+      if (now >= pStart && now < pEnd) {
+        activePD = pratyantarList[c];
+        break;
+      }
+    }
+    if (!activePD) activePD = pratyantarList[pratyantarList.length - 1];
 
     return {
       birthNakshatraLord: lord,
       balanceAtBirthYears: Number(balanceYears.toFixed(2)),
-      activeMahadasha: active.planet,
-      sequence: sequence.slice(0, 5)
+      activeMahadasha: activeMD.planet,
+      fullSequence: fullSequence,
+      active: {
+        mahadasha: {
+          planet: activeMD.planet,
+          startDate: activeMD.startDate,
+          endDate: activeMD.endDate,
+          totalYears: activeMD.totalYears
+        },
+        antardasha: {
+          planet: activeAD.antardasha,
+          startDate: activeAD.from,
+          endDate: activeAD.to,
+          totalYears: activeAD.totalYears
+        },
+        pratyantar: {
+          planet: activePD.planet,
+          startDate: activePD.from,
+          endDate: activePD.to,
+          totalDays: activePD.totalDays
+        },
+        sequence: antardashaList
+      },
+      sequence: fullSequence.slice(0, 5)
     };
   }
 
@@ -696,9 +920,1121 @@
       });
   }
 
+  // ========== NAVAMSA (D9) DIVISIONAL CHART ==========
+  // Navamsa divides each sign (30°) into 9 equal parts (3°20' each = navamsa).
+  // Starting sign for navamsa cycle depends on the element of the rashi:
+  //   Fire signs (Aries, Leo, Sagittarius) → cycle starts from Aries
+  //   Earth signs (Taurus, Virgo, Capricorn) → cycle starts from Capricorn
+  //   Air signs (Gemini, Libra, Aquarius) → cycle starts from Libra
+  //   Water signs (Cancer, Scorpio, Pisces) → cycle starts from Cancer
+
+  var NAVAMSA_START = {
+    Fire: 0,    // Aries
+    Earth: 9,   // Capricorn
+    Air: 6,     // Libra
+    Water: 3    // Cancer
+  };
+
+  function navamsaSign(longitude) {
+    var normalLon = normalize(longitude);
+    var rashiIndex = Math.floor(normalLon / 30);
+    var degreeInRashi = normalLon - (rashiIndex * 30);
+    var navamsaPada = Math.floor(degreeInRashi / (30 / 9)); // 0-8 (which navamsa within the sign)
+    var element = SIGN_ELEMENTS[rashiIndex];
+    var startSign = NAVAMSA_START[element];
+    var navamsaIndex = (startSign + navamsaPada) % 12;
+    return navamsaIndex;
+  }
+
+  function navamsaRow(name, longitude, navAscSign) {
+    var navSign = navamsaSign(longitude);
+    return {
+      planet: name,
+      sign: SIGN_NAMES[navSign],
+      rashi: SIGN_HINDI[navSign],
+      symbol: SIGN_SYMBOLS[navSign],
+      lord: SIGN_LORDS[navSign],
+      house: ((navSign - navAscSign + 12) % 12) + 1,
+      d1Sign: SIGN_NAMES[signIndex(longitude)],
+      d1Rashi: SIGN_HINDI[signIndex(longitude)]
+    };
+  }
+
+  function isVargottama(longitude) {
+    // A planet is Vargottama when it's in the same sign in D1 (Rashi) and D9 (Navamsa)
+    return signIndex(longitude) === navamsaSign(longitude);
+  }
+
+  function navamsaStrength(planet, navRow, d1Row) {
+    var ownSign = SIGN_LORDS[SIGN_NAMES.indexOf(navRow.sign)] === planet;
+    var exalted = isExaltedInNavamsa(planet, navRow.sign);
+    var vargottama = navRow.sign === d1Row.sign;
+    var score = 50;
+    if (ownSign) score += 20;
+    if (exalted) score += 25;
+    if (vargottama) score += 15;
+    if ([1, 4, 5, 7, 9, 10].indexOf(navRow.house) >= 0) score += 10;
+    return clamp(score, 30, 100);
+  }
+
+  function isExaltedInNavamsa(planet, sign) {
+    var exaltations = {
+      Sun: "Aries", Moon: "Taurus", Mars: "Capricorn",
+      Mercury: "Virgo", Jupiter: "Cancer", Venus: "Pisces",
+      Saturn: "Libra", Rahu: "Gemini", Ketu: "Sagittarius"
+    };
+    return exaltations[planet] === sign;
+  }
+
+  function isDebilitatedInNavamsa(planet, sign) {
+    var debilitations = {
+      Sun: "Libra", Moon: "Scorpio", Mars: "Cancer",
+      Mercury: "Pisces", Jupiter: "Capricorn", Venus: "Virgo",
+      Saturn: "Aries", Rahu: "Sagittarius", Ketu: "Gemini"
+    };
+    return debilitations[planet] === sign;
+  }
+
+  function navamsaChart(input) {
+    var data = input || {};
+    var resolved = utcDateFromLocal(data.date, data.time, data.place);
+    var jd = julianDayFromUTC(resolved.utcDate);
+    var longitudes = planetaryLongitudes(jd);
+    var asc = ascendantLongitude(jd, resolved.location.lat, resolved.location.lon);
+
+    // Navamsa Lagna (Ascendant in D9)
+    var navAscSign = navamsaSign(asc);
+    var navAscLord = SIGN_LORDS[navAscSign];
+
+    // D1 ascendant for reference
+    var d1AscSign = signIndex(asc);
+
+    // All planet positions in Navamsa
+    var planets = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+    var d1Rows = planets.map(function(planet) {
+      return planetRow(planet, longitudes[planet], d1AscSign);
+    });
+    var navRows = planets.map(function(planet, idx) {
+      var row = navamsaRow(planet, longitudes[planet], navAscSign);
+      row.strength = navamsaStrength(planet, row, d1Rows[idx]);
+      row.vargottama = isVargottama(longitudes[planet]);
+      row.exalted = isExaltedInNavamsa(planet, row.sign);
+      row.debilitated = isDebilitatedInNavamsa(planet, row.sign);
+      return row;
+    });
+
+    // Vargottama planets (same sign in D1 and D9 — very strong)
+    var vargottamaPlanets = navRows.filter(function(row) { return row.vargottama; })
+      .map(function(row) { return row.planet; });
+
+    // 7th house analysis for marriage (D9 is primarily for marriage/dharma)
+    var seventhSign = (navAscSign + 6) % 12;
+    var seventhLord = SIGN_LORDS[seventhSign];
+    var planetsIn7th = navRows.filter(function(row) { return row.house === 7; })
+      .map(function(row) { return row.planet; });
+
+    // Venus and Jupiter positions (key for marriage)
+    var venus = navRows.find(function(row) { return row.planet === "Venus"; });
+    var jupiter = navRows.find(function(row) { return row.planet === "Jupiter"; });
+    var moon = navRows.find(function(row) { return row.planet === "Moon"; });
+
+    // Pushkara Navamsa check (auspicious navamsas)
+    var pushkaraPlanets = navRows.filter(function(row) {
+      return isPushkaraNavamsa(longitudes[row.planet]);
+    }).map(function(row) { return row.planet; });
+
+    // Generate reading
+    var reading = generateNavamsaReading(navAscSign, navAscLord, navRows, vargottamaPlanets, seventhLord, planetsIn7th, venus, jupiter);
+
+    return {
+      name: titleCase(data.name || "Native"),
+      chartType: "Navamsa (D9)",
+      chartTypeHindi: "नवांश (D9)",
+      description: "Marriage, dharma, soul-purpose aur inner strength ka chart",
+      input: {
+        date: formatDate(dateParts(data.date || new Date())),
+        time: data.time || "12:00",
+        place: (resolved.location || {}).name || "Delhi"
+      },
+      navamsaLagna: {
+        sign: SIGN_NAMES[navAscSign],
+        rashi: SIGN_HINDI[navAscSign],
+        rashiHindi: SIGN_DEVANAGARI[navAscSign],
+        symbol: SIGN_SYMBOLS[navAscSign],
+        lord: navAscLord,
+        element: SIGN_ELEMENTS[navAscSign],
+        quality: SIGN_QUALITIES[navAscSign]
+      },
+      d1Lagna: {
+        sign: SIGN_NAMES[d1AscSign],
+        rashi: SIGN_HINDI[d1AscSign]
+      },
+      planets: navRows,
+      vargottamaPlanets: vargottamaPlanets,
+      pushkaraPlanets: pushkaraPlanets,
+      marriageAnalysis: {
+        seventhHouse: {
+          sign: SIGN_NAMES[seventhSign],
+          rashi: SIGN_HINDI[seventhSign],
+          lord: seventhLord,
+          planets: planetsIn7th
+        },
+        venusPosition: {
+          sign: venus.sign,
+          rashi: venus.rashi,
+          house: venus.house,
+          strong: venus.strength >= 70,
+          exalted: venus.exalted,
+          debilitated: venus.debilitated
+        },
+        jupiterPosition: {
+          sign: jupiter.sign,
+          rashi: jupiter.rashi,
+          house: jupiter.house,
+          strong: jupiter.strength >= 70,
+          exalted: jupiter.exalted
+        }
+      },
+      reading: reading,
+      disclaimer: "Navamsa chart vivah, dharma aur aatma-bal ka sookshma analysis deta hai. Ye D1 (Rashi) chart ke saath combined reading mein use karein."
+    };
+  }
+
+  // Pushkara Navamsa: specific navamsa padas considered very auspicious
+  // These are the navamsa positions that fall in the signs ruled by benefics (Jupiter, Venus) 
+  // and are at specific degrees
+  function isPushkaraNavamsa(longitude) {
+    var normalLon = normalize(longitude);
+    var rashiIndex = Math.floor(normalLon / 30);
+    var degInSign = normalLon - (rashiIndex * 30);
+    var navPada = Math.floor(degInSign / (30 / 9));
+    // Pushkara Navamsas by rashi (0-indexed pada within the sign that are Pushkara)
+    var pushkaraMap = {
+      0: [6, 8],    // Aries: 7th and 9th navamsa
+      1: [2, 4],    // Taurus: 3rd and 5th navamsa
+      2: [5, 7],    // Gemini: 6th and 8th navamsa
+      3: [1, 3],    // Cancer: 2nd and 4th navamsa
+      4: [6, 8],    // Leo: 7th and 9th navamsa
+      5: [2, 4],    // Virgo: 3rd and 5th navamsa
+      6: [5, 7],    // Libra: 6th and 8th navamsa
+      7: [1, 3],    // Scorpio: 2nd and 4th navamsa
+      8: [6, 8],    // Sagittarius: 7th and 9th navamsa
+      9: [2, 4],    // Capricorn: 3rd and 5th navamsa
+      10: [5, 7],   // Aquarius: 6th and 8th navamsa
+      11: [1, 3]    // Pisces: 2nd and 4th navamsa
+    };
+    return (pushkaraMap[rashiIndex] || []).indexOf(navPada) >= 0;
+  }
+
+  function generateNavamsaReading(navAscSign, navAscLord, navRows, vargottama, seventhLord, planetsIn7th, venus, jupiter) {
+    var lines = [];
+
+    // Navamsa Lagna reading
+    lines.push(
+      "Navamsa Lagna " + SIGN_HINDI[navAscSign] + " (" + SIGN_NAMES[navAscSign] + ") hai, jo " +
+      SIGN_ELEMENTS[navAscSign].toLowerCase() + " tattva aur " + SIGN_QUALITIES[navAscSign].toLowerCase() +
+      " nature ka deep-level influence dikhata hai. Dharma path aur married life me " + navAscLord +
+      " ki position guide karegi."
+    );
+
+    // Vargottama planets
+    if (vargottama.length > 0) {
+      lines.push(
+        "Vargottama grah: " + vargottama.join(", ") +
+        " — ye D1 aur D9 dono me same rashi me hain, isliye inke results life me strongly manifest hote hain."
+      );
+    } else {
+      lines.push("Koi bhi grah vargottama nahi hai; deeper navamsa analysis se planet strengths samjhein.");
+    }
+
+    // 7th house and marriage
+    var marriageLine = "7th house lord " + seventhLord + " hai";
+    if (planetsIn7th.length > 0) {
+      marriageLine += " aur " + planetsIn7th.join(", ") + " 7th house me baithe hain";
+    }
+    marriageLine += ". ";
+    if (venus.strength >= 70) {
+      marriageLine += "Venus strong hai jo married life me harmony, love aur comfort indicate karta hai.";
+    } else if (venus.debilitated) {
+      marriageLine += "Venus debilitated hai — relationship me compromise aur patience ki zarurat rahegi; remedies helpful honge.";
+    } else {
+      marriageLine += "Venus average strength me hai — marriage me mutual effort aur understanding se stability aayegi.";
+    }
+    lines.push(marriageLine);
+
+    // Jupiter for dharma and wisdom
+    if (jupiter.strength >= 70) {
+      lines.push("Jupiter D9 me strong hai — dharma, wisdom aur guru-blessings life me support karenge. Spiritual growth natural rahega.");
+    } else if (jupiter.exalted) {
+      lines.push("Jupiter uccha (exalted) hai — ye param shubh hai; dharma, santaan aur fortune me divine grace milegi.");
+    } else {
+      lines.push("Jupiter ki D9 position suggest karti hai ki dharma path me conscious effort aur discipline rakhna beneficial hoga.");
+    }
+
+    // Strength-based insight
+    var strongest = navRows
+      .filter(function(r) { return r.planet !== "Rahu" && r.planet !== "Ketu"; })
+      .sort(function(a, b) { return b.strength - a.strength; })[0];
+    if (strongest) {
+      lines.push(
+        strongest.planet + " navamsa me sabse strong hai (house " + strongest.house +
+        ", " + strongest.rashi + ") — ye deep-level life themes me natural support ka source hai."
+      );
+    }
+
+    return lines;
+  }
+
+  // ========== HORA (D2) DIVISIONAL CHART ==========
+  // Each sign divided into 2 halves (15 degrees each)
+  // Odd signs: first half = Sun (Leo), second half = Moon (Cancer)
+  // Even signs: first half = Moon (Cancer), second half = Sun (Leo)
+
+  function horaSign(longitude) {
+    var normalLon = normalize(longitude);
+    var rashiIndex = Math.floor(normalLon / 30);
+    var degInSign = normalLon - (rashiIndex * 30);
+    var isOddSign = (rashiIndex % 2 === 0); // 0-indexed: Aries=0 (odd), Taurus=1 (even)
+    var firstHalf = degInSign < 15;
+    if (isOddSign) {
+      return firstHalf ? 4 : 3; // Leo=4, Cancer=3
+    } else {
+      return firstHalf ? 3 : 4; // Cancer=3, Leo=4
+    }
+  }
+
+  function horaRow(name, longitude, horaAscSign) {
+    var hSign = horaSign(longitude);
+    return {
+      planet: name,
+      sign: SIGN_NAMES[hSign],
+      rashi: SIGN_HINDI[hSign],
+      symbol: SIGN_SYMBOLS[hSign],
+      lord: SIGN_LORDS[hSign],
+      house: ((hSign - horaAscSign + 12) % 12) + 1,
+      d1Sign: SIGN_NAMES[signIndex(longitude)],
+      d1Rashi: SIGN_HINDI[signIndex(longitude)]
+    };
+  }
+
+  function horaChart(input) {
+    var data = input || {};
+    var resolved = utcDateFromLocal(data.date, data.time, data.place);
+    var jd = julianDayFromUTC(resolved.utcDate);
+    var longitudes = planetaryLongitudes(jd);
+    var asc = ascendantLongitude(jd, resolved.location.lat, resolved.location.lon);
+
+    var horaAscSign = horaSign(asc);
+    var planets = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+    var rows = planets.map(function(planet) {
+      return horaRow(planet, longitudes[planet], horaAscSign);
+    });
+
+    var sunCount = rows.filter(function(r) { return r.sign === "Leo"; }).length;
+    var moonCount = rows.filter(function(r) { return r.sign === "Cancer"; }).length;
+
+    var reading = [];
+    reading.push("Hora chart me " + sunCount + " grah Sun hora (Leo) aur " + moonCount + " grah Moon hora (Cancer) me hain.");
+    if (sunCount > moonCount) {
+      reading.push("Sun hora dominance se self-effort, authority aur earned wealth se financial growth hogi.");
+    } else if (moonCount > sunCount) {
+      reading.push("Moon hora dominance se inherited wealth, public dealings aur nurturing activities se dhan aayega.");
+    } else {
+      reading.push("Balanced hora placement se dono - self-effort aur inherited/passive income ke channels active hain.");
+    }
+    reading.push("D2 chart financial timing aur wealth accumulation pattern ko samajhne ke liye use karein.");
+
+    return {
+      name: titleCase(data.name || "Native"),
+      chartType: "Hora (D2)",
+      chartTypeHindi: "होरा (D2)",
+      description: "Wealth, finance aur dhan yoga ka chart",
+      input: {
+        date: formatDate(dateParts(data.date || new Date())),
+        time: data.time || "12:00",
+        place: (resolved.location || {}).name || "Delhi"
+      },
+      horaLagna: {
+        sign: SIGN_NAMES[horaAscSign],
+        rashi: SIGN_HINDI[horaAscSign],
+        rashiHindi: SIGN_DEVANAGARI[horaAscSign],
+        symbol: SIGN_SYMBOLS[horaAscSign],
+        lord: SIGN_LORDS[horaAscSign],
+        element: SIGN_ELEMENTS[horaAscSign],
+        quality: SIGN_QUALITIES[horaAscSign]
+      },
+      planets: rows,
+      reading: reading,
+      disclaimer: "Hora chart dhan aur financial patterns ka sookshma analysis deta hai. D1 chart ke saath combine karke padhein."
+    };
+  }
+
+  // ========== DREKKANA (D3) DIVISIONAL CHART ==========
+  // Each sign divided into 3 parts (10 degrees each)
+  // First drekkana (0-10) = same sign
+  // Second drekkana (10-20) = 5th sign from it
+  // Third drekkana (20-30) = 9th sign from it
+
+  function drekkanaSign(longitude) {
+    var normalLon = normalize(longitude);
+    var rashiIndex = Math.floor(normalLon / 30);
+    var degInSign = normalLon - (rashiIndex * 30);
+    if (degInSign < 10) {
+      return rashiIndex; // same sign
+    } else if (degInSign < 20) {
+      return (rashiIndex + 4) % 12; // 5th sign (0-indexed: +4)
+    } else {
+      return (rashiIndex + 8) % 12; // 9th sign (0-indexed: +8)
+    }
+  }
+
+  function drekkanaRow(name, longitude, drekAscSign) {
+    var dSign = drekkanaSign(longitude);
+    return {
+      planet: name,
+      sign: SIGN_NAMES[dSign],
+      rashi: SIGN_HINDI[dSign],
+      symbol: SIGN_SYMBOLS[dSign],
+      lord: SIGN_LORDS[dSign],
+      house: ((dSign - drekAscSign + 12) % 12) + 1,
+      d1Sign: SIGN_NAMES[signIndex(longitude)],
+      d1Rashi: SIGN_HINDI[signIndex(longitude)]
+    };
+  }
+
+  function drekkanaChart(input) {
+    var data = input || {};
+    var resolved = utcDateFromLocal(data.date, data.time, data.place);
+    var jd = julianDayFromUTC(resolved.utcDate);
+    var longitudes = planetaryLongitudes(jd);
+    var asc = ascendantLongitude(jd, resolved.location.lat, resolved.location.lon);
+
+    var drekAscSign = drekkanaSign(asc);
+    var planets = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+    var rows = planets.map(function(planet) {
+      return drekkanaRow(planet, longitudes[planet], drekAscSign);
+    });
+
+    var thirdHouse = rows.filter(function(r) { return r.house === 3; });
+    var reading = [];
+    reading.push("Drekkana lagna " + SIGN_HINDI[drekAscSign] + " (" + SIGN_NAMES[drekAscSign] + ") hai jo courage, siblings aur short journeys me " + SIGN_ELEMENTS[drekAscSign].toLowerCase() + " nature dikhata hai.");
+    if (thirdHouse.length > 0) {
+      reading.push("3rd house me " + thirdHouse.map(function(r) { return r.planet; }).join(", ") + " hain jo siblings aur initiative ke matters activate karte hain.");
+    } else {
+      reading.push("3rd house empty hai - siblings se stable aur conflict-free relationship likely hai.");
+    }
+    reading.push("D3 chart bhai-beheno ke saath sambandh, personal courage aur chhote travels ko darshata hai.");
+
+    return {
+      name: titleCase(data.name || "Native"),
+      chartType: "Drekkana (D3)",
+      chartTypeHindi: "द्रेक्काण (D3)",
+      description: "Siblings, courage aur short journeys ka chart",
+      input: {
+        date: formatDate(dateParts(data.date || new Date())),
+        time: data.time || "12:00",
+        place: (resolved.location || {}).name || "Delhi"
+      },
+      drekkanaLagna: {
+        sign: SIGN_NAMES[drekAscSign],
+        rashi: SIGN_HINDI[drekAscSign],
+        rashiHindi: SIGN_DEVANAGARI[drekAscSign],
+        symbol: SIGN_SYMBOLS[drekAscSign],
+        lord: SIGN_LORDS[drekAscSign],
+        element: SIGN_ELEMENTS[drekAscSign],
+        quality: SIGN_QUALITIES[drekAscSign]
+      },
+      planets: rows,
+      reading: reading,
+      disclaimer: "Drekkana chart siblings, courage aur personal initiative ka sookshma analysis deta hai. D1 ke saath padhein."
+    };
+  }
+
+  // ========== DASHAMSA (D10) DIVISIONAL CHART ==========
+  // Each sign divided into 10 parts (3 degrees each)
+  // For odd signs: count from the same sign
+  // For even signs: count from the 9th sign from it
+
+  function dashamsaSign(longitude) {
+    var normalLon = normalize(longitude);
+    var rashiIndex = Math.floor(normalLon / 30);
+    var degInSign = normalLon - (rashiIndex * 30);
+    var part = Math.floor(degInSign / 3); // 0-9
+    var isOddSign = (rashiIndex % 2 === 0); // 0-indexed: Aries=0 is odd sign
+    if (isOddSign) {
+      return (rashiIndex + part) % 12;
+    } else {
+      return (rashiIndex + 8 + part) % 12; // 9th sign = +8 in 0-indexed
+    }
+  }
+
+  function dashamsaRow(name, longitude, dashaAscSign) {
+    var dSign = dashamsaSign(longitude);
+    return {
+      planet: name,
+      sign: SIGN_NAMES[dSign],
+      rashi: SIGN_HINDI[dSign],
+      symbol: SIGN_SYMBOLS[dSign],
+      lord: SIGN_LORDS[dSign],
+      house: ((dSign - dashaAscSign + 12) % 12) + 1,
+      d1Sign: SIGN_NAMES[signIndex(longitude)],
+      d1Rashi: SIGN_HINDI[signIndex(longitude)]
+    };
+  }
+
+  function dashamChart(input) {
+    var data = input || {};
+    var resolved = utcDateFromLocal(data.date, data.time, data.place);
+    var jd = julianDayFromUTC(resolved.utcDate);
+    var longitudes = planetaryLongitudes(jd);
+    var asc = ascendantLongitude(jd, resolved.location.lat, resolved.location.lon);
+
+    var dashaAscSign = dashamsaSign(asc);
+    var planets = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+    var rows = planets.map(function(planet) {
+      return dashamsaRow(planet, longitudes[planet], dashaAscSign);
+    });
+
+    var tenthHouse = rows.filter(function(r) { return r.house === 10; });
+    var reading = [];
+    reading.push("Dashamsa lagna " + SIGN_HINDI[dashaAscSign] + " (" + SIGN_NAMES[dashaAscSign] + ") hai jo career me " + SIGN_ELEMENTS[dashaAscSign].toLowerCase() + " element aur " + SIGN_QUALITIES[dashaAscSign].toLowerCase() + " approach dikhata hai.");
+    if (tenthHouse.length > 0) {
+      reading.push("10th house me " + tenthHouse.map(function(r) { return r.planet; }).join(", ") + " hain jo professional growth aur public recognition strongly activate karte hain.");
+    } else {
+      reading.push("10th house empty hai - career growth steady effort aur D1 10th lord ke dasha me manifest hogi.");
+    }
+    reading.push("D10 chart profession, fame aur career achievements ka deep analysis hai. Job changes aur promotions ke liye dekha jata hai.");
+
+    return {
+      name: titleCase(data.name || "Native"),
+      chartType: "Dashamsa (D10)",
+      chartTypeHindi: "दशमांश (D10)",
+      description: "Career, profession aur fame ka chart",
+      input: {
+        date: formatDate(dateParts(data.date || new Date())),
+        time: data.time || "12:00",
+        place: (resolved.location || {}).name || "Delhi"
+      },
+      dashamsaLagna: {
+        sign: SIGN_NAMES[dashaAscSign],
+        rashi: SIGN_HINDI[dashaAscSign],
+        rashiHindi: SIGN_DEVANAGARI[dashaAscSign],
+        symbol: SIGN_SYMBOLS[dashaAscSign],
+        lord: SIGN_LORDS[dashaAscSign],
+        element: SIGN_ELEMENTS[dashaAscSign],
+        quality: SIGN_QUALITIES[dashaAscSign]
+      },
+      planets: rows,
+      reading: reading,
+      disclaimer: "Dashamsa chart career aur professional success ka sookshma analysis deta hai. D1 ke saath combine karein."
+    };
+  }
+
+  // ========== COMBINED DIVISIONAL CHARTS ==========
+  function divisionalCharts(input) {
+    return {
+      d2: horaChart(input),
+      d3: drekkanaChart(input),
+      d9: navamsaChart(input),
+      d10: dashamChart(input)
+    };
+  }
+
+  // ========== YOGA DETECTION ==========
+  // Exaltation and own sign data for yoga detection
+  var EXALTATION_SIGNS = {
+    Sun: "Aries", Moon: "Taurus", Mars: "Capricorn",
+    Mercury: "Virgo", Jupiter: "Cancer", Venus: "Pisces",
+    Saturn: "Libra", Rahu: "Gemini", Ketu: "Sagittarius"
+  };
+
+  var OWN_SIGNS = {
+    Sun: ["Leo"],
+    Moon: ["Cancer"],
+    Mars: ["Aries", "Scorpio"],
+    Mercury: ["Gemini", "Virgo"],
+    Jupiter: ["Sagittarius", "Pisces"],
+    Venus: ["Taurus", "Libra"],
+    Saturn: ["Capricorn", "Aquarius"],
+    Rahu: ["Aquarius"],
+    Ketu: ["Scorpio"]
+  };
+
+  function isInOwnSign(planet, sign) {
+    return (OWN_SIGNS[planet] || []).indexOf(sign) >= 0;
+  }
+
+  function isExalted(planet, sign) {
+    return EXALTATION_SIGNS[planet] === sign;
+  }
+
+  function isInOwnOrExalted(planet, sign) {
+    return isInOwnSign(planet, sign) || isExalted(planet, sign);
+  }
+
+  function getHouseFromSign(planetSign, ascSign) {
+    var pIdx = SIGN_NAMES.indexOf(planetSign);
+    var aIdx = SIGN_NAMES.indexOf(ascSign);
+    return ((pIdx - aIdx + 12) % 12) + 1;
+  }
+
+  function getLordOfHouse(houseNum, ascSign) {
+    var ascIdx = SIGN_NAMES.indexOf(ascSign);
+    var signIdx = (ascIdx + houseNum - 1) % 12;
+    return SIGN_LORDS[signIdx];
+  }
+
+  function getSignOfHouse(houseNum, ascSign) {
+    var ascIdx = SIGN_NAMES.indexOf(ascSign);
+    var signIdx = (ascIdx + houseNum - 1) % 12;
+    return SIGN_NAMES[signIdx];
+  }
+
+  function getPlanetSign(chart, planetName) {
+    var p = chart.planets.find(function(r) { return r.planet === planetName; });
+    return p ? p.sign : null;
+  }
+
+  function getPlanetHouse(chart, planetName) {
+    var p = chart.planets.find(function(r) { return r.planet === planetName; });
+    return p ? p.house : 0;
+  }
+
+  function getPlanetLongitude(chart, planetName) {
+    var p = chart.planets.find(function(r) { return r.planet === planetName; });
+    return p ? p.longitude : 0;
+  }
+
+  function arePlanetsConjunct(chart, p1, p2) {
+    return getPlanetSign(chart, p1) === getPlanetSign(chart, p2);
+  }
+
+  function isPlanetInKendra(house) {
+    return [1, 4, 7, 10].indexOf(house) >= 0;
+  }
+
+  function isPlanetInTrikona(house) {
+    return [1, 5, 9].indexOf(house) >= 0;
+  }
+
+  function detectYogas(chart) {
+    var yogas = [];
+    var ascSign = chart.ascendant.sign;
+
+    // --- 1. Kendra-Trikona Raj Yoga ---
+    var kendraHouses = [1, 4, 7, 10];
+    var trikonaHouses = [1, 5, 9];
+    var kendraLords = kendraHouses.map(function(h) { return getLordOfHouse(h, ascSign); });
+    var trikonaLords = trikonaHouses.map(function(h) { return getLordOfHouse(h, ascSign); });
+
+    for (var ki = 0; ki < kendraLords.length; ki++) {
+      for (var ti = 0; ti < trikonaLords.length; ti++) {
+        var kl = kendraLords[ki];
+        var tl = trikonaLords[ti];
+        if (kl === tl) continue; // same planet cannot form yoga with itself here
+        var klSign = getPlanetSign(chart, kl);
+        var tlSign = getPlanetSign(chart, tl);
+        if (!klSign || !tlSign) continue;
+        // Conjunct or in each other's houses
+        var conjunct = (klSign === tlSign);
+        var klHouse = getHouseFromSign(klSign, ascSign);
+        var tlHouse = getHouseFromSign(tlSign, ascSign);
+        var kendraH = kendraHouses[ki];
+        var trikonaH = trikonaHouses[ti];
+        var inEachOthersHouse = (getSignOfHouse(kendraH, ascSign) === tlSign && getSignOfHouse(trikonaH, ascSign) === klSign);
+        if (conjunct || inEachOthersHouse) {
+          yogas.push({
+            name: "Kendra-Trikona Raj Yoga",
+            nameHindi: "\u0915\u0947\u0928\u094D\u0926\u094D\u0930-\u0924\u094D\u0930\u093F\u0915\u094B\u0923 \u0930\u093E\u091C \u092F\u094B\u0917",
+            type: "Shubh",
+            category: "Raj",
+            planets: [kl, tl],
+            description: kl + " (kendra lord) aur " + tl + " (trikona lord) ka sambandh hai - authority, status aur success milta hai.",
+            strength: conjunct ? "Strong" : "Moderate",
+            houses: [kendraH, trikonaH]
+          });
+          break; // one detection is enough
+        }
+      }
+      if (yogas.length > 0 && yogas[yogas.length - 1].name === "Kendra-Trikona Raj Yoga") break;
+    }
+
+    // --- 2. Dharma-Karmadhipati Yoga (9th + 10th lords) ---
+    var lord9 = getLordOfHouse(9, ascSign);
+    var lord10 = getLordOfHouse(10, ascSign);
+    if (lord9 !== lord10) {
+      var lord9Sign = getPlanetSign(chart, lord9);
+      var lord10Sign = getPlanetSign(chart, lord10);
+      if (lord9Sign && lord10Sign && lord9Sign === lord10Sign) {
+        yogas.push({
+          name: "Dharma-Karmadhipati Yoga",
+          nameHindi: "\u0927\u0930\u094D\u092E-\u0915\u0930\u094D\u092E\u093E\u0927\u093F\u092A\u0924\u093F \u092F\u094B\u0917",
+          type: "Shubh",
+          category: "Raj",
+          planets: [lord9, lord10],
+          description: "9th lord (" + lord9 + ") aur 10th lord (" + lord10 + ") ek saath hain - dharma aur karma ka sangam, high position aur fame milta hai.",
+          strength: "Strong",
+          houses: [9, 10]
+        });
+      }
+    }
+
+    // --- 3-7. Pancha Mahapurusha Yogas ---
+    var mahapurushaMap = [
+      { planet: "Mars", yoga: "Ruchaka Yoga", yogaHindi: "\u0930\u0941\u091A\u0915 \u092F\u094B\u0917", desc: "Mars own/exalted sign me kendra me hai - courage, leadership aur physical strength exceptional hai." },
+      { planet: "Mercury", yoga: "Bhadra Yoga", yogaHindi: "\u092D\u0926\u094D\u0930 \u092F\u094B\u0917", desc: "Mercury own/exalted sign me kendra me hai - intelligence, communication aur business me excellence hai." },
+      { planet: "Jupiter", yoga: "Hamsa Yoga", yogaHindi: "\u0939\u0902\u0938 \u092F\u094B\u0917", desc: "Jupiter own/exalted sign me kendra me hai - wisdom, spirituality aur respected position milti hai." },
+      { planet: "Venus", yoga: "Malavya Yoga", yogaHindi: "\u092E\u093E\u0932\u0935\u094D\u092F \u092F\u094B\u0917", desc: "Venus own/exalted sign me kendra me hai - luxury, arts aur relationship me sukh milta hai." },
+      { planet: "Saturn", yoga: "Shasha Yoga", yogaHindi: "\u0936\u0936 \u092F\u094B\u0917", desc: "Saturn own/exalted sign me kendra me hai - authority, discipline aur long-term success milta hai." }
+    ];
+
+    mahapurushaMap.forEach(function(mp) {
+      var pSign = getPlanetSign(chart, mp.planet);
+      var pHouse = getPlanetHouse(chart, mp.planet);
+      if (pSign && isInOwnOrExalted(mp.planet, pSign) && isPlanetInKendra(pHouse)) {
+        yogas.push({
+          name: mp.yoga,
+          nameHindi: mp.yogaHindi,
+          type: "Shubh",
+          category: "Pancha Mahapurusha",
+          planets: [mp.planet],
+          description: mp.desc,
+          strength: isExalted(mp.planet, pSign) ? "Strong" : "Moderate",
+          houses: [pHouse]
+        });
+      }
+    });
+
+    // --- 8. Lakshmi Yoga ---
+    var venusSign = getPlanetSign(chart, "Venus");
+    var venusHouse = getPlanetHouse(chart, "Venus");
+    var ninthLord = getLordOfHouse(9, ascSign);
+    var ninthLordHouse = getPlanetHouse(chart, ninthLord);
+    if (venusSign && isInOwnOrExalted("Venus", venusSign) &&
+        (isPlanetInKendra(venusHouse) || isPlanetInTrikona(venusHouse)) &&
+        (isPlanetInKendra(ninthLordHouse) || isPlanetInTrikona(ninthLordHouse))) {
+      yogas.push({
+        name: "Lakshmi Yoga",
+        nameHindi: "\u0932\u0915\u094D\u0937\u094D\u092E\u0940 \u092F\u094B\u0917",
+        type: "Shubh",
+        category: "Dhan",
+        planets: ["Venus", ninthLord],
+        description: "Venus strong hai aur 9th lord bhi achhi position me hai - wealth, luxury aur prosperity ka yoga hai.",
+        strength: isExalted("Venus", venusSign) ? "Strong" : "Moderate",
+        houses: [venusHouse, 9]
+      });
+    }
+
+    // --- 9. Dhan Yoga (2nd + 11th lords connected) ---
+    var lord2 = getLordOfHouse(2, ascSign);
+    var lord11 = getLordOfHouse(11, ascSign);
+    if (lord2 !== lord11) {
+      var lord2Sign = getPlanetSign(chart, lord2);
+      var lord11Sign = getPlanetSign(chart, lord11);
+      if (lord2Sign && lord11Sign && lord2Sign === lord11Sign) {
+        yogas.push({
+          name: "Dhan Yoga",
+          nameHindi: "\u0927\u0928 \u092F\u094B\u0917",
+          type: "Shubh",
+          category: "Dhan",
+          planets: [lord2, lord11],
+          description: "2nd lord (" + lord2 + ") aur 11th lord (" + lord11 + ") connected hain - wealth accumulation aur income growth strong hai.",
+          strength: "Moderate",
+          houses: [2, 11]
+        });
+      }
+    } else {
+      // Same planet is lord of both 2 and 11
+      var sameSign = getPlanetSign(chart, lord2);
+      if (sameSign && (isPlanetInKendra(getPlanetHouse(chart, lord2)) || isPlanetInTrikona(getPlanetHouse(chart, lord2)))) {
+        yogas.push({
+          name: "Dhan Yoga",
+          nameHindi: "\u0927\u0928 \u092F\u094B\u0917",
+          type: "Shubh",
+          category: "Dhan",
+          planets: [lord2],
+          description: lord2 + " dono 2nd aur 11th house ka lord hai aur strong position me hai - dhan yoga formed.",
+          strength: "Moderate",
+          houses: [2, 11]
+        });
+      }
+    }
+
+    // --- 10. Budhaditya Yoga (Sun + Mercury same sign, Mercury not combust) ---
+    var sunSign = getPlanetSign(chart, "Sun");
+    var mercSign = getPlanetSign(chart, "Mercury");
+    if (sunSign && mercSign && sunSign === mercSign) {
+      var sunLong = getPlanetLongitude(chart, "Sun");
+      var mercLong = getPlanetLongitude(chart, "Mercury");
+      var angularDiff = Math.abs(sunLong - mercLong);
+      if (angularDiff > 180) angularDiff = 360 - angularDiff;
+      if (angularDiff > 14) {
+        yogas.push({
+          name: "Budhaditya Yoga",
+          nameHindi: "\u092C\u0941\u0927\u093E\u0926\u093F\u0924\u094D\u092F \u092F\u094B\u0917",
+          type: "Shubh",
+          category: "Budhi",
+          planets: ["Sun", "Mercury"],
+          description: "Sun aur Mercury ek rashi me hain bina combustion ke - intelligence, communication aur analytical skills strong hain.",
+          strength: angularDiff > 20 ? "Strong" : "Moderate",
+          houses: [getPlanetHouse(chart, "Sun")]
+        });
+      }
+    }
+
+    // --- 11. Gajakesari Yoga (Jupiter in kendra from Moon) ---
+    var moonSign = chart.moonSign.sign;
+    var jupSign = getPlanetSign(chart, "Jupiter");
+    if (moonSign && jupSign) {
+      var moonIdx = SIGN_NAMES.indexOf(moonSign);
+      var jupIdx = SIGN_NAMES.indexOf(jupSign);
+      var distance = ((jupIdx - moonIdx + 12) % 12) + 1;
+      if ([1, 4, 7, 10].indexOf(distance) >= 0) {
+        yogas.push({
+          name: "Gajakesari Yoga",
+          nameHindi: "\u0917\u091C\u0915\u0947\u0938\u0930\u0940 \u092F\u094B\u0917",
+          type: "Shubh",
+          category: "Budhi",
+          planets: ["Jupiter", "Moon"],
+          description: "Jupiter Moon se kendra me hai - wisdom, reputation aur public respect ka yoga hai.",
+          strength: isInOwnOrExalted("Jupiter", jupSign) ? "Strong" : "Moderate",
+          houses: [getPlanetHouse(chart, "Jupiter"), getPlanetHouse(chart, "Moon")]
+        });
+      }
+    }
+
+    // --- 12. Kaal Sarp Yoga (all planets between Rahu-Ketu axis) ---
+    var rahuLong = getPlanetLongitude(chart, "Rahu");
+    var ketuLong = getPlanetLongitude(chart, "Ketu");
+    var otherPlanets = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"];
+    var allOnOneSide = true;
+    var betweenRahuKetu = 0;
+    var betweenKetuRahu = 0;
+
+    otherPlanets.forEach(function(planet) {
+      var pLong = getPlanetLongitude(chart, planet);
+      // Check if planet is between Rahu and Ketu (going forward from Rahu to Ketu)
+      var isBetweenRK;
+      if (rahuLong < ketuLong) {
+        isBetweenRK = (pLong > rahuLong && pLong < ketuLong);
+      } else {
+        isBetweenRK = (pLong > rahuLong || pLong < ketuLong);
+      }
+      if (isBetweenRK) {
+        betweenRahuKetu++;
+      } else {
+        betweenKetuRahu++;
+      }
+    });
+
+    if (betweenRahuKetu === 7 || betweenKetuRahu === 7) {
+      yogas.push({
+        name: "Kaal Sarp Yoga",
+        nameHindi: "\u0915\u093E\u0932 \u0938\u0930\u094D\u092A \u092F\u094B\u0917",
+        type: "Ashubh",
+        category: "Dosha",
+        planets: ["Rahu", "Ketu"],
+        description: "Sab grah Rahu-Ketu axis ke ek taraf hain - karmic challenges aur unexpected ups-downs aate hain. Remedies se shanti milti hai.",
+        strength: "Strong",
+        houses: [getPlanetHouse(chart, "Rahu"), getPlanetHouse(chart, "Ketu")]
+      });
+    }
+
+    // --- 13. Mangal Dosha ---
+    var marsHouse = getPlanetHouse(chart, "Mars");
+    var mangalDoshaHouses = [1, 2, 4, 7, 8, 12];
+    if (mangalDoshaHouses.indexOf(marsHouse) >= 0) {
+      yogas.push({
+        name: "Mangal Dosha",
+        nameHindi: "\u092E\u0902\u0917\u0932 \u0926\u094B\u0937",
+        type: "Ashubh",
+        category: "Dosha",
+        planets: ["Mars"],
+        description: "Mars house " + marsHouse + " me hai - marriage aur partnership me caution aur matching zaruri hai. Remedies se balance aata hai.",
+        strength: [7, 8].indexOf(marsHouse) >= 0 ? "Strong" : "Moderate",
+        houses: [marsHouse]
+      });
+    }
+
+    // --- 14. Kemdrum Yoga (Moon isolated - no planet in 2nd or 12th from Moon) ---
+    var moonHouse = getPlanetHouse(chart, "Moon");
+    var houseBeforeMoon = moonHouse === 1 ? 12 : moonHouse - 1; // 12th from Moon
+    var houseAfterMoon = moonHouse === 12 ? 1 : moonHouse + 1;   // 2nd from Moon
+    var planetsNearMoon = chart.planets.filter(function(p) {
+      return p.planet !== "Moon" && p.planet !== "Rahu" && p.planet !== "Ketu" &&
+             (p.house === houseBeforeMoon || p.house === houseAfterMoon);
+    });
+    if (planetsNearMoon.length === 0) {
+      yogas.push({
+        name: "Kemdrum Yoga",
+        nameHindi: "\u0915\u0947\u092E\u0926\u094D\u0930\u0941\u092E \u092F\u094B\u0917",
+        type: "Ashubh",
+        category: "Dosha",
+        planets: ["Moon"],
+        description: "Moon ke aas-paas koi grah nahi hai - emotional isolation aur financial ups-downs ho sakte hain. Strong Moon isko reduce karta hai.",
+        strength: "Moderate",
+        houses: [moonHouse]
+      });
+    }
+
+    // --- 15. Vairagi Yoga (Saturn influences 1st, 5th, 9th) ---
+    var saturnHouse = getPlanetHouse(chart, "Saturn");
+    // Saturn aspects: 3rd, 7th, 10th from its position
+    var saturnAspects = [
+      saturnHouse,
+      ((saturnHouse + 2 - 1) % 12) + 1,  // 3rd from Saturn
+      ((saturnHouse + 6 - 1) % 12) + 1,  // 7th from Saturn
+      ((saturnHouse + 9 - 1) % 12) + 1   // 10th from Saturn
+    ];
+    var influencesHouse1 = saturnAspects.indexOf(1) >= 0;
+    var influencesHouse5 = saturnAspects.indexOf(5) >= 0;
+    var influencesHouse9 = saturnAspects.indexOf(9) >= 0;
+    if (influencesHouse1 && influencesHouse5 && influencesHouse9) {
+      yogas.push({
+        name: "Vairagi Yoga",
+        nameHindi: "\u0935\u0948\u0930\u093E\u0917\u0940 \u092F\u094B\u0917",
+        type: "Mixed",
+        category: "Spiritual",
+        planets: ["Saturn"],
+        description: "Saturn 1st, 5th aur 9th houses ko influence karta hai - spiritual detachment, renunciation tendency aur deep wisdom milti hai.",
+        strength: isInOwnOrExalted("Saturn", getPlanetSign(chart, "Saturn")) ? "Strong" : "Moderate",
+        houses: [1, 5, 9]
+      });
+    }
+
+    return yogas;
+  }
+
+  // ========== SIMPLE HINDI KUNDLI READING ==========
+
+  var SIGN_PERSONALITY = {
+    Aries: "Aap bahut energetic aur leader type ke insaan hain. Challenges se aap darte nahi, balki unhe enjoy karte hain.",
+    Taurus: "Aap stable aur patient insaan hain. Comfort aur luxury aapko attract karti hai. Aap reliable friend hain.",
+    Gemini: "Aap versatile aur witty insaan hain. Communication aapki strength hai. Aap har topic pe baat kar sakte hain.",
+    Cancer: "Aap emotional aur caring nature ke hain. Family aapke liye sabse important hai. Aap dusron ki feelings samajhte hain.",
+    Leo: "Aap confident aur charismatic hain. Leadership aapke blood mein hai. Limelight mein rehna aapko achha lagta hai.",
+    Virgo: "Aap detail-oriented aur practical hain. Perfectionist nature ke saath aap har kaam properly karte hain.",
+    Libra: "Aap diplomatic aur balanced nature ke hain. Beauty, art aur relationships mein natural attraction hai.",
+    Scorpio: "Aap intense aur focused insaan hain. Deep thinking aapki strength hai. Secrets rakhna aapko aata hai.",
+    Sagittarius: "Aap adventurous aur optimistic hain. Knowledge aur travel aapki life ka important part hai.",
+    Capricorn: "Aap disciplined aur ambitious hain. Hard work se aap apne goals zaroor achieve karte hain.",
+    Aquarius: "Aap innovative aur independent thinker hain. Society ke liye kuch different karna chahte hain.",
+    Pisces: "Aap creative aur spiritual nature ke hain. Imagination aur intuition aapki biggest strength hai."
+  };
+
+  var PLANET_CAREER = {
+    Sun: "Government job, leadership roles, ya administration mein success milegi.",
+    Moon: "Public dealing, hospitality, nursing, ya creative field mein achha karogey.",
+    Mars: "Engineering, military, sports, ya surgery jaise fields mein talent hai.",
+    Mercury: "Business, writing, accounting, IT ya communication field best rahega.",
+    Jupiter: "Teaching, law, banking, consulting ya advisory roles mein growth hogi.",
+    Venus: "Fashion, entertainment, beauty industry, luxury brands ya art field suit karega.",
+    Saturn: "Real estate, mining, agriculture, ya long-term stable career mein safalta milegi.",
+    Rahu: "Technology, foreign companies, unconventional careers mein achha scope hai.",
+    Ketu: "Spiritual work, research, astrology, ya healing practices mein talent hai."
+  };
+
+  var PLANET_HEALTH = {
+    Sun: "Aankh, heart aur bones ka dhyan rakhein. Subah ki dhoop lein.",
+    Moon: "Mental health, sleep cycle aur hydration pe focus rakhein.",
+    Mars: "Blood pressure, injuries aur anger management pe dhyan dein.",
+    Mercury: "Nervous system, skin aur breathing exercises important hain.",
+    Jupiter: "Liver, weight management aur overeating se bachein.",
+    Venus: "Kidney, sugar level aur reproductive health ka dhyan rakhein.",
+    Saturn: "Joints, bones aur regular exercise bahut zaroori hai.",
+    Rahu: "Anxiety, unknown fears aur sleep problems pe kaam karein.",
+    Ketu: "Digestive system aur meditation se balance rakhein."
+  };
+
+  var DASHA_MEANINGS = {
+    Sun: "confidence badhega, father figures se support milega, aur career mein recognition ka time hai",
+    Moon: "emotions active rahenge, mother ka role important hai, aur mental peace pe focus rakhein",
+    Mars: "energy high rahegi, courage se decisions lein, lekin anger control mein rakhein",
+    Mercury: "communication aur business opportunities aayengi, learning ka best time hai",
+    Jupiter: "luck favor karega, wisdom badhegi, aur spiritual growth hogi",
+    Venus: "relationships bloom honge, comfort badhega, aur creativity peak pe hogi",
+    Saturn: "patience test hoga, hard work ka fruit milega, discipline zaroori hai",
+    Rahu: "unexpected changes aayenge, worldly desires strong hongi, grounded rehna important hai",
+    Ketu: "spiritual awakening ka time hai, detachment feel hoga, inner growth hogi"
+  };
+
+  var GEMSTONES = {
+    Sun: "Manik (Ruby)", Moon: "Moti (Pearl)", Mars: "Moonga (Red Coral)",
+    Mercury: "Panna (Emerald)", Jupiter: "Pukhraj (Yellow Sapphire)",
+    Venus: "Heera (Diamond)", Saturn: "Neelam (Blue Sapphire)",
+    Rahu: "Gomed (Hessonite)", Ketu: "Lehsunia (Cat's Eye)"
+  };
+
+  var LUCKY_DAYS = {
+    Sun: "Ravivar (Sunday)", Moon: "Somvar (Monday)", Mars: "Mangalvar (Tuesday)",
+    Mercury: "Budhvar (Wednesday)", Jupiter: "Guruvar (Thursday)",
+    Venus: "Shukravar (Friday)", Saturn: "Shanivar (Saturday)",
+    Rahu: "Shanivar (Saturday)", Ketu: "Mangalvar (Tuesday)"
+  };
+
+  var LUCKY_COLORS = {
+    Sun: "Saffron / Orange", Moon: "White / Silver", Mars: "Red / Maroon",
+    Mercury: "Green", Jupiter: "Yellow / Gold", Venus: "White / Pink",
+    Saturn: "Blue / Black", Rahu: "Grey / Smoke", Ketu: "Brown / Multi-color"
+  };
+
+  function simpleKundliReading(chart) {
+    var ascIndex = SIGN_NAMES.indexOf(chart.ascendant.sign);
+    var ascLord = chart.ascendant.lord;
+    var element = SIGN_ELEMENTS[ascIndex];
+    var moonPlanet = chart.planets.find(function(p) { return p.planet === "Moon"; });
+    var tenthHousePlanets = chart.planets.filter(function(p) { return p.house === 10; });
+    var seventhLord = SIGN_LORDS[(ascIndex + 6) % 12];
+    var secondHousePlanets = chart.planets.filter(function(p) { return p.house === 2; });
+    var eleventhHousePlanets = chart.planets.filter(function(p) { return p.house === 11; });
+
+    var careerPlanet = tenthHousePlanets.length > 0 ? tenthHousePlanets[0].planet : SIGN_LORDS[(ascIndex + 9) % 12];
+    var healthPlanet = ascLord;
+    var dashaPlanet = chart.dasha.activeMahadasha;
+
+    var personality = SIGN_PERSONALITY[chart.ascendant.sign] || "Aap unique personality ke malik hain.";
+    personality += " " + chart.ascendant.lord + " aapka lagna lord hai isliye " +
+      (element === "Fire" ? "energy aur passion" : element === "Earth" ? "stability aur practicality" :
+       element === "Air" ? "communication aur intellect" : "emotions aur intuition") + " aapki life mein dominate karta hai.";
+
+    var career = "Aapke 10th house mein " + (tenthHousePlanets.length > 0 ?
+      tenthHousePlanets.map(function(p) { return p.planet; }).join(" aur ") + " hai" :
+      "koi graha nahi hai, 10th lord " + SIGN_LORDS[(ascIndex + 9) % 12] + " dekhna hoga") + ". " +
+      (PLANET_CAREER[careerPlanet] || "Mehnat se safalta milegi.");
+
+    var marriage = "Vivah ke mamle mein aapka 7th house lord " + seventhLord + " hai. " +
+      (seventhLord === "Venus" ? "Aapko achha aur sundar partner milega." :
+       seventhLord === "Jupiter" ? "Partner wise aur supportive hoga." :
+       seventhLord === "Saturn" ? "Thoda delay ho sakta hai lekin stable marriage milegi." :
+       seventhLord === "Mars" ? "Partner energetic hoga, lekin ego clashes se bachein." :
+       "Partner ke saath communication open rakhein toh achha rahega.");
+
+    var health = PLANET_HEALTH[healthPlanet] || "Regular exercise aur balanced diet se healthy rahein.";
+
+    var finance = "Dhan yog: ";
+    if (secondHousePlanets.length > 0 || eleventhHousePlanets.length > 0) {
+      var finPlanets = secondHousePlanets.concat(eleventhHousePlanets);
+      finance += finPlanets.map(function(p) { return p.planet; }).join(", ") + " aapke dhan bhav mein hai. ";
+      finance += "Income sources multiple honge aur savings pe dhyan dein.";
+    } else {
+      finance += "2nd aur 11th house lords strong hain toh steady income rahegi. Savings habit banayein.";
+    }
+
+    var currentPhase = "Abhi aapki " + dashaPlanet + " ki Mahadasha chal rahi hai. Iska matlab " +
+      (DASHA_MEANINGS[dashaPlanet] || "ye time growth ka hai") + ".";
+
+    var luckyNumber = ((ascIndex + 1) * 3 + 1) % 9 + 1;
+    var luckyThings = {
+      day: LUCKY_DAYS[ascLord] || "Ravivar (Sunday)",
+      color: LUCKY_COLORS[ascLord] || "Purple",
+      number: luckyNumber,
+      gemstone: GEMSTONES[ascLord] || "Moti (Pearl)",
+      mantra: ascLord === "Sun" ? "Om Suryaya Namah" :
+              ascLord === "Moon" ? "Om Chandraya Namah" :
+              ascLord === "Mars" ? "Om Mangalaya Namah" :
+              ascLord === "Mercury" ? "Om Budhaya Namah" :
+              ascLord === "Jupiter" ? "Om Gurave Namah" :
+              ascLord === "Venus" ? "Om Shukraya Namah" :
+              ascLord === "Saturn" ? "Om Shanaye Namah" :
+              "Om Namah Shivaya"
+    };
+
+    var dosAndDonts = [
+      ascLord === "Saturn" || ascLord === "Mars" ? "Gusse mein koi bhi decision na lein" : "Overthinking se bachein",
+      "Subah jaldi uthein aur thodi meditation zaroor karein",
+      LUCKY_DAYS[ascLord] ? LUCKY_DAYS[ascLord].split(" ")[0] + " ko apna important kaam plan karein" : "Apna lucky day use karein",
+      "Apne lagna lord " + ascLord + " ko strong rakhne ke liye " + (GEMSTONES[ascLord] || "appropriate gemstone") + " pehen sakte hain",
+      dashaPlanet === "Saturn" ? "Patience rakhein, results time pe aayenge" : "Apne goals pe focused rahein"
+    ];
+
+    var yogaReadings = [];
+    if (chart.yogas && chart.yogas.length > 0) {
+      yogaReadings = chart.yogas.slice(0, 5).map(function(y) {
+        return { name: y.name + " (" + y.nameHindi + ")", simpleExplanation: y.description };
+      });
+    }
+
+    return {
+      personality: personality,
+      career: career,
+      marriage: marriage,
+      health: health,
+      finance: finance,
+      currentPhase: currentPhase,
+      luckyThings: luckyThings,
+      dosAndDonts: dosAndDonts,
+      yogas: yogaReadings
+    };
+  }
+
+  // ========== NAME TO RASHI MAPPING ==========
+
+  var NAME_TO_RASHI_MAP = {
+    "A": 0, "L": 0, "E": 0,
+    "B": 1, "V": 1, "U": 1,
+    "K": 2, "G": 2,
+    "D": 3, "H": 3,
+    "M": 4, "T": 4,
+    "P": 5,
+    "R": 6,
+    "N": 7, "Y": 7,
+    "F": 8,
+    "J": 9,
+    "S": 10,
+    "Z": 11, "C": 11
+  };
+
+  // More specific multi-char prefixes (checked first)
+  var NAME_PREFIX_MAP = {
+    "BH": 8, "DH": 8, "PH": 8,
+    "KH": 9,
+    "SH": 10,
+    "TH": 5,
+    "CH": 11
+  };
+
+  function nameToRashi(name) {
+    var cleanName = String(name || "").trim().toUpperCase();
+    if (!cleanName) return null;
+
+    // Check two-letter prefixes first
+    var prefix2 = cleanName.substring(0, 2);
+    if (NAME_PREFIX_MAP[prefix2] !== undefined) {
+      var idx = NAME_PREFIX_MAP[prefix2];
+      return {
+        letter: prefix2,
+        rashiIndex: idx,
+        sign: SIGN_NAMES[idx],
+        rashi: SIGN_HINDI[idx],
+        rashiDevanagari: SIGN_DEVANAGARI[idx],
+        symbol: SIGN_SYMBOLS[idx]
+      };
+    }
+
+    // Check single letter
+    var firstLetter = cleanName.charAt(0);
+    if (NAME_TO_RASHI_MAP[firstLetter] !== undefined) {
+      var sIdx = NAME_TO_RASHI_MAP[firstLetter];
+      return {
+        letter: firstLetter,
+        rashiIndex: sIdx,
+        sign: SIGN_NAMES[sIdx],
+        rashi: SIGN_HINDI[sIdx],
+        rashiDevanagari: SIGN_DEVANAGARI[sIdx],
+        symbol: SIGN_SYMBOLS[sIdx]
+      };
+    }
+
+    return null;
+  }
+
   function generateKundli(input) {
     const chart = makeChart(input);
+    const navamsa = navamsaChart(input);
+    const yogas = detectYogas(chart);
     return Object.assign(chart, {
+      navamsa: navamsa,
+      yogas: yogas,
       reading: {
         personality: `${chart.ascendant.rashi} lagna native ko ${SIGN_ELEMENTS[SIGN_NAMES.indexOf(chart.ascendant.sign)].toLowerCase()} drive deta hai. Decision making me ${chart.ascendant.lord} ka role important rahega.`,
         mind: `${chart.moonSign.rashi} Moon aur ${chart.moonSign.nakshatra} nakshatra emotional instincts ko shape karta hai. Daily routine me consistency se clarity badhegi.`,
@@ -899,9 +2235,123 @@
     return "Routine work, prayer aur mindful decisions ke liye balanced din hai.";
   }
 
-  function varnaScore(signIndexValue) {
-    const groups = [3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4];
-    return groups[signIndexValue];
+  // --- Classical Ashtakoot Guna Milan Helper Functions ---
+
+  function varnaValue(nakIndex) {
+    const map = { Brahmin: 4, Kshatriya: 3, Vaishya: 2, Shudra: 1 };
+    return map[NAKSHATRA_VARNA[nakIndex]] || 1;
+  }
+
+  function calcVarna(boyNakIndex, girlNakIndex) {
+    var boyVal = varnaValue(boyNakIndex);
+    var girlVal = varnaValue(girlNakIndex);
+    var scored = boyVal >= girlVal ? 1 : 0;
+    return {
+      name: "Varna", nameHindi: "\u0935\u0930\u094D\u0923", maxPoints: 1, scored: scored,
+      description: "Spiritual/intellectual compatibility",
+      detail: "Boy: " + NAKSHATRA_VARNA[boyNakIndex] + " (" + boyVal + "), Girl: " + NAKSHATRA_VARNA[girlNakIndex] + " (" + girlVal + ")" + (scored ? " - Boy >= Girl" : " - Boy < Girl")
+    };
+  }
+
+  function calcVashya(boySignIndex, girlSignIndex) {
+    var boyV = SIGN_VASHYA[boySignIndex];
+    var girlV = SIGN_VASHYA[girlSignIndex];
+    var scored = 0;
+    var rule = "";
+    if (boyV === girlV) {
+      scored = 2; rule = "Same Vashya category";
+    } else if ((boyV === "Manava" && girlV === "Chatushpada") || (boyV === "Chatushpada" && girlV === "Manava")) {
+      scored = 1; rule = "Manava-Chatushpada partial control";
+    } else if ((boyV === "Chatushpada" && girlV === "Jalachara") || (boyV === "Jalachara" && girlV === "Chatushpada")) {
+      scored = 0.5; rule = "Chatushpada-Jalachara minimal affinity";
+    } else {
+      scored = 0; rule = "No Vashya affinity";
+    }
+    return {
+      name: "Vashya", nameHindi: "\u0935\u0936\u094D\u092F", maxPoints: 2, scored: scored,
+      description: "Dominance/mutual attraction",
+      detail: "Boy: " + SIGN_NAMES[boySignIndex] + " (" + boyV + "), Girl: " + SIGN_NAMES[girlSignIndex] + " (" + girlV + ") - " + rule
+    };
+  }
+
+  function isTaraAuspicious(fromNakIndex, toNakIndex) {
+    var count = ((toNakIndex - fromNakIndex + 27) % 27) + 1;
+    var remainder = count % 9;
+    if (remainder === 0) remainder = 9;
+    return [3, 5, 7].indexOf(remainder) === -1;
+  }
+
+  function calcTara(boyNakIndex, girlNakIndex) {
+    var girlToBoy = isTaraAuspicious(girlNakIndex, boyNakIndex);
+    var boyToGirl = isTaraAuspicious(boyNakIndex, girlNakIndex);
+    var scored = 0;
+    var rule = "";
+    if (girlToBoy && boyToGirl) {
+      scored = 3; rule = "Both directions auspicious";
+    } else if (girlToBoy || boyToGirl) {
+      scored = 1.5; rule = "One direction auspicious";
+    } else {
+      scored = 0; rule = "Both directions inauspicious";
+    }
+    return {
+      name: "Tara", nameHindi: "\u0924\u093E\u0930\u093E", maxPoints: 3, scored: scored,
+      description: "Birth star compatibility (Dina Tara)",
+      detail: "Girl-to-Boy: " + (girlToBoy ? "auspicious" : "inauspicious") + ", Boy-to-Girl: " + (boyToGirl ? "auspicious" : "inauspicious") + " - " + rule
+    };
+  }
+
+  function areYoniEnemies(a, b) {
+    for (var i = 0; i < YONI_ENEMIES.length; i++) {
+      if ((YONI_ENEMIES[i][0] === a && YONI_ENEMIES[i][1] === b) ||
+          (YONI_ENEMIES[i][1] === a && YONI_ENEMIES[i][0] === b)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function calcYoni(boyNakIndex, girlNakIndex) {
+    var boyYoni = NAKSHATRA_YONI_DETAILED[boyNakIndex];
+    var girlYoni = NAKSHATRA_YONI_DETAILED[girlNakIndex];
+    var scored = 0;
+    var rule = "";
+    if (boyYoni.animal === girlYoni.animal) {
+      if (boyYoni.gender !== girlYoni.gender) {
+        scored = 4; rule = "Same animal, opposite gender (perfect pair)";
+      } else {
+        scored = 3; rule = "Same animal, same gender";
+      }
+    } else if (areYoniEnemies(boyYoni.animal, girlYoni.animal)) {
+      scored = 0; rule = "Enemy animals (" + boyYoni.animal + " vs " + girlYoni.animal + ")";
+    } else {
+      // Classify as friendly (2) or neutral (1) using a simplified approach
+      // Friendly: animals not in the enemy list and not completely unrelated
+      scored = 2; rule = "Friendly/neutral animals";
+      // Use a more nuanced check: if neither is an enemy of the other, 
+      // check for known friendly combinations
+      var friendlyPairs = [
+        ["Cow", "Buffalo"], ["Horse", "Deer"], ["Elephant", "Sheep"],
+        ["Monkey", "Lion"], ["Dog", "Cat"], ["Serpent", "Deer"]
+      ];
+      var isFriendly = false;
+      for (var i = 0; i < friendlyPairs.length; i++) {
+        if ((friendlyPairs[i][0] === boyYoni.animal && friendlyPairs[i][1] === girlYoni.animal) ||
+            (friendlyPairs[i][1] === boyYoni.animal && friendlyPairs[i][0] === girlYoni.animal)) {
+          isFriendly = true;
+          break;
+        }
+      }
+      if (isFriendly) {
+        scored = 2; rule = "Friendly animals (" + boyYoni.animal + " & " + girlYoni.animal + ")";
+      } else {
+        scored = 1; rule = "Neutral animals (" + boyYoni.animal + " & " + girlYoni.animal + ")";
+      }
+    }
+    return {
+      name: "Yoni", nameHindi: "\u092F\u094B\u0928\u093F", maxPoints: 4, scored: scored,
+      description: "Sexual/physical compatibility",
+      detail: "Boy: " + boyYoni.animal + "(" + boyYoni.gender + "), Girl: " + girlYoni.animal + "(" + girlYoni.gender + ") - " + rule
+    };
   }
 
   function moonProfile(input) {
@@ -916,49 +2366,237 @@
     };
   }
 
-  function matchmaking(input) {
-    const p1 = moonProfile(input && input.person1 ? input.person1 : {});
-    const p2 = moonProfile(input && input.person2 ? input.person2 : {});
-    const taraDistance = ((p2.nakIndex - p1.nakIndex + 27) % 27) + 1;
-    const reverseTara = ((p1.nakIndex - p2.nakIndex + 27) % 27) + 1;
-    const taraGood = [1, 3, 5, 7].indexOf(taraDistance % 9) === -1 && [1, 3, 5, 7].indexOf(reverseTara % 9) === -1;
-    const signDistance = ((p2.signIndex - p1.signIndex + 12) % 12) + 1;
-    const reverseSignDistance = ((p1.signIndex - p2.signIndex + 12) % 12) + 1;
-    const sameLord = SIGN_LORDS[p1.signIndex] === SIGN_LORDS[p2.signIndex];
-    const sameYoni = p1.nak.yoni === p2.nak.yoni;
-    const sameNadi = p1.nak.nadi === p2.nak.nadi;
-    const sameGana = p1.nak.gana === p2.nak.gana;
-    const bhakootGood = ["2-12", "5-9", "6-8"].indexOf(`${signDistance}-${reverseSignDistance}`) === -1;
-    const scores = {
-      varna: varnaScore(p2.signIndex) >= varnaScore(p1.signIndex) ? 1 : 0,
-      vashya: compatibleElement(p1.signIndex, p2.signIndex) ? 2 : 1,
-      tara: taraGood ? 3 : 1.5,
-      yoni: sameYoni ? 4 : compatibleYoni(p1.nak.yoni, p2.nak.yoni) ? 3 : 1,
-      grahaMaitri: sameLord ? 5 : compatibleLords(SIGN_LORDS[p1.signIndex], SIGN_LORDS[p2.signIndex]) ? 4 : 2,
-      gana: sameGana ? 6 : compatibleGana(p1.nak.gana, p2.nak.gana) ? 4 : 2,
-      bhakoot: bhakootGood ? 7 : 0,
-      nadi: sameNadi ? 0 : 8
+  function getRelationship(planetA, planetB) {
+    if (planetA === planetB) return "friend";
+    var entry = GRAHA_MAITRI_TABLE[planetA];
+    if (!entry) return "neutral";
+    if (entry.friends.indexOf(planetB) >= 0) return "friend";
+    if (entry.enemies.indexOf(planetB) >= 0) return "enemy";
+    return "neutral";
+  }
+
+  function calcGrahaMaitri(boySignIndex, girlSignIndex) {
+    var lordBoy = SIGN_LORDS[boySignIndex];
+    var lordGirl = SIGN_LORDS[girlSignIndex];
+    var scored = 0;
+    var rule = "";
+    if (lordBoy === lordGirl) {
+      scored = 5; rule = "Same lord (" + lordBoy + ")";
+    } else {
+      var relAtoB = getRelationship(lordBoy, lordGirl);
+      var relBtoA = getRelationship(lordGirl, lordBoy);
+      if (relAtoB === "friend" && relBtoA === "friend") {
+        scored = 5; rule = "Mutual friends (" + lordBoy + " & " + lordGirl + ")";
+      } else if ((relAtoB === "friend" && relBtoA === "neutral") || (relAtoB === "neutral" && relBtoA === "friend")) {
+        scored = 4; rule = "One friend, one neutral (" + lordBoy + " & " + lordGirl + ")";
+      } else if (relAtoB === "neutral" && relBtoA === "neutral") {
+        scored = 3; rule = "Both neutral (" + lordBoy + " & " + lordGirl + ")";
+      } else if ((relAtoB === "friend" && relBtoA === "enemy") || (relAtoB === "enemy" && relBtoA === "friend")) {
+        scored = 1; rule = "One friend, one enemy (" + lordBoy + " & " + lordGirl + ")";
+      } else if ((relAtoB === "neutral" && relBtoA === "enemy") || (relAtoB === "enemy" && relBtoA === "neutral")) {
+        scored = 0.5; rule = "One neutral, one enemy (" + lordBoy + " & " + lordGirl + ")";
+      } else {
+        scored = 0; rule = "Mutual enemies (" + lordBoy + " & " + lordGirl + ")";
+      }
+    }
+    return {
+      name: "Graha Maitri", nameHindi: "\u0917\u094D\u0930\u0939 \u092E\u0948\u0924\u094D\u0930\u0940", maxPoints: 5, scored: scored,
+      description: "Planetary lord friendship",
+      detail: "Boy lord: " + lordBoy + ", Girl lord: " + lordGirl + " - " + rule
     };
-    const total = Object.keys(scores).reduce(function (sum, key) { return sum + scores[key]; }, 0);
-    const mangal1 = mangalDosha(p1.chart);
-    const mangal2 = mangalDosha(p2.chart);
+  }
+
+  function calcGana(boyNakIndex, girlNakIndex) {
+    var boyGana = NAKSHATRA_GANA[boyNakIndex];
+    var girlGana = NAKSHATRA_GANA[girlNakIndex];
+    // Classical grid: rows=Boy (Deva/Manushya/Rakshasa), cols=Girl (Deva/Manushya/Rakshasa)
+    var ganaGrid = {
+      "Deva-Deva": 6, "Deva-Manushya": 6, "Deva-Rakshasa": 0,
+      "Manushya-Deva": 5, "Manushya-Manushya": 6, "Manushya-Rakshasa": 0,
+      "Rakshasa-Deva": 1, "Rakshasa-Manushya": 0, "Rakshasa-Rakshasa": 6
+    };
+    var key = boyGana + "-" + girlGana;
+    var scored = ganaGrid[key] !== undefined ? ganaGrid[key] : 0;
+    return {
+      name: "Gana", nameHindi: "\u0917\u0923", maxPoints: 6, scored: scored,
+      description: "Temperament compatibility",
+      detail: "Boy: " + boyGana + ", Girl: " + girlGana + " - Score: " + scored + "/6"
+    };
+  }
+
+  function calcBhakoot(boySignIndex, girlSignIndex) {
+    var distBoyToGirl = ((girlSignIndex - boySignIndex + 12) % 12) + 1;
+    var distGirlToBoy = ((boySignIndex - girlSignIndex + 12) % 12) + 1;
+    var inauspiciousPairs = [[2,12],[6,8],[5,9]];
+    var isBad = false;
+    for (var i = 0; i < inauspiciousPairs.length; i++) {
+      var pair = inauspiciousPairs[i];
+      if ((distBoyToGirl === pair[0] && distGirlToBoy === pair[1]) ||
+          (distBoyToGirl === pair[1] && distGirlToBoy === pair[0])) {
+        isBad = true;
+        break;
+      }
+    }
+    var doshaPresent = isBad;
+    var doshaCancelled = false;
+    var scored = 7;
+    var rule = "";
+    if (isBad) {
+      // Check if lords are same or friends (cancellation)
+      var lordBoy = SIGN_LORDS[boySignIndex];
+      var lordGirl = SIGN_LORDS[girlSignIndex];
+      if (lordBoy === lordGirl) {
+        doshaCancelled = true;
+        scored = 7;
+        rule = "Bhakoot dosha (" + distBoyToGirl + "/" + distGirlToBoy + ") cancelled - same lords (" + lordBoy + ")";
+      } else {
+        var rel1 = getRelationship(lordBoy, lordGirl);
+        var rel2 = getRelationship(lordGirl, lordBoy);
+        if (rel1 === "friend" || rel2 === "friend") {
+          doshaCancelled = true;
+          scored = 7;
+          rule = "Bhakoot dosha (" + distBoyToGirl + "/" + distGirlToBoy + ") cancelled - lords are friends (" + lordBoy + " & " + lordGirl + ")";
+        } else {
+          scored = 0;
+          rule = "Bhakoot dosha (" + distBoyToGirl + "/" + distGirlToBoy + ") - lords not friendly";
+        }
+      }
+    } else {
+      rule = "No Bhakoot dosha (distance: " + distBoyToGirl + "/" + distGirlToBoy + ")";
+    }
+    return {
+      koota: {
+        name: "Bhakoot", nameHindi: "\u092D\u0915\u0942\u091F", maxPoints: 7, scored: scored,
+        description: "Rashi lord compatibility (health/wealth)",
+        detail: rule
+      },
+      doshaPresent: doshaPresent,
+      doshaCancelled: doshaCancelled,
+      reason: rule
+    };
+  }
+
+  function calcNadi(boyNakIndex, girlNakIndex, boySigIdx, girlSigIdx, boyPada, girlPada) {
+    var boyNadi = NAKSHATRA_NADI[boyNakIndex];
+    var girlNadi = NAKSHATRA_NADI[girlNakIndex];
+    var doshaPresent = (boyNadi === girlNadi);
+    var doshaCancelled = false;
+    var scored = 8;
+    var rule = "";
+    if (doshaPresent) {
+      // Check exception: same nakshatra different pada
+      if (boyNakIndex === girlNakIndex && boyPada !== girlPada) {
+        doshaCancelled = true;
+        scored = 8;
+        rule = "Same Nadi (" + boyNadi + ") but same nakshatra different pada - dosha cancelled";
+      } else if (boySigIdx === girlSigIdx && boyNakIndex !== girlNakIndex) {
+        // Same rashi but different nakshatra
+        doshaCancelled = true;
+        scored = 8;
+        rule = "Same Nadi (" + boyNadi + ") but same rashi different nakshatra - dosha cancelled";
+      } else {
+        scored = 0;
+        rule = "Nadi Dosha - both have " + boyNadi + " nadi (inauspicious for progeny)";
+      }
+    } else {
+      rule = "Different Nadi (Boy: " + boyNadi + ", Girl: " + girlNadi + ") - auspicious";
+    }
+    return {
+      koota: {
+        name: "Nadi", nameHindi: "\u0928\u093E\u0921\u0940", maxPoints: 8, scored: scored,
+        description: "Health and genetic compatibility (most important)",
+        detail: rule
+      },
+      doshaPresent: doshaPresent,
+      doshaCancelled: doshaCancelled,
+      reason: rule
+    };
+  }
+
+  function matchmakingGuidance(total, nadiDosha, bhakootDosha, mangal1, mangal2) {
+    var lines = [];
+    if (total >= 28) {
+      lines.push("Ashtakoot score uttam (excellent) hai. Emotional, physical aur family compatibility bahut achhi hai.");
+    } else if (total >= 22) {
+      lines.push("Ashtakoot score shubh (good) hai. Compatibility supportive hai, par communication aur mutual respect zaruri hai.");
+    } else if (total >= 18) {
+      lines.push("Score madhyam (average) hai. Vivah se pehle detailed chart analysis, counselling aur remedies par vichar karein.");
+    } else {
+      lines.push("Score kam hai. Marriage decision me family values, practical goals aur professional guidance carefully consider karein.");
+    }
+    if (nadiDosha.present && !nadiDosha.cancelled) {
+      lines.push("Nadi Dosha present hai - santaan (progeny) aur health ke liye remedies aur deeper analysis recommended hai.");
+    }
+    if (bhakootDosha.present && !bhakootDosha.cancelled) {
+      lines.push("Bhakoot Dosha present hai - wealth aur health challenges possible hain, remedies se shanti milegi.");
+    }
+    if (mangal1.hasDosha !== mangal2.hasDosha) {
+      lines.push("Mangal Dosha imbalance hai - ek chart me Manglik aur dusre me nahi. Remedies aur matching check zaruri hai.");
+    } else if (mangal1.hasDosha && mangal2.hasDosha) {
+      lines.push("Dono charts me Mangal Dosha hai, jo traditionally ek dusre ko cancel karta hai.");
+    }
+    return lines;
+  }
+
+  function matchmaking(input) {
+    var p1 = moonProfile(input && input.person1 ? input.person1 : {});
+    var p2 = moonProfile(input && input.person2 ? input.person2 : {});
+
+    // Calculate all 8 kootas (Convention: person1 = Boy, person2 = Girl)
+    var varna = calcVarna(p1.nakIndex, p2.nakIndex);
+    var vashya = calcVashya(p1.signIndex, p2.signIndex);
+    var tara = calcTara(p1.nakIndex, p2.nakIndex);
+    var yoni = calcYoni(p1.nakIndex, p2.nakIndex);
+    var grahaMaitri = calcGrahaMaitri(p1.signIndex, p2.signIndex);
+    var gana = calcGana(p1.nakIndex, p2.nakIndex);
+    var bhakootResult = calcBhakoot(p1.signIndex, p2.signIndex);
+    var nadiResult = calcNadi(p1.nakIndex, p2.nakIndex, p1.signIndex, p2.signIndex, p1.nak.pada, p2.nak.pada);
+
+    var kootas = [varna, vashya, tara, yoni, grahaMaitri, gana, bhakootResult.koota, nadiResult.koota];
+    var total = 0;
+    for (var i = 0; i < kootas.length; i++) {
+      total += kootas[i].scored;
+    }
+    total = Number(total.toFixed(1));
+    var percentage = Number(((total / 36) * 100).toFixed(1));
+
+    var verdict = "";
+    var verdictHindi = "";
+    if (total >= 28) { verdict = "Uttam (Excellent)"; verdictHindi = "\u0909\u0924\u094D\u0924\u092E"; }
+    else if (total >= 22) { verdict = "Good (Shubh)"; verdictHindi = "\u0936\u0941\u092D"; }
+    else if (total >= 18) { verdict = "Madhyam (Average)"; verdictHindi = "\u092E\u0927\u094D\u092F\u092E"; }
+    else { verdict = "Ashubh (Unfavorable - needs remedies)"; verdictHindi = "\u0905\u0936\u0941\u092D"; }
+
+    var mangal1 = mangalDosha(p1.chart);
+    var mangal2 = mangalDosha(p2.chart);
+
+    var nadiDosha = { present: nadiResult.doshaPresent, cancelled: nadiResult.doshaCancelled, reason: nadiResult.reason };
+    var bhakootDosha = { present: bhakootResult.doshaPresent, cancelled: bhakootResult.doshaCancelled, reason: bhakootResult.reason };
+
+    var guidance = matchmakingGuidance(total, nadiDosha, bhakootDosha, mangal1, mangal2);
 
     return {
       person1: compactBirthProfile(p1.chart),
       person2: compactBirthProfile(p2.chart),
       ashtakoot: {
-        scores: scores,
-        total: Number(total.toFixed(1)),
+        kootas: kootas,
+        total: total,
         maximum: 36,
-        verdict: total >= 28 ? "Excellent compatibility" : total >= 22 ? "Good compatibility" : total >= 18 ? "Average compatibility" : "Needs careful guidance"
+        percentage: percentage,
+        verdict: verdict,
+        verdictHindi: verdictHindi
       },
-      mangalDosha: {
-        person1: mangal1,
-        person2: mangal2,
-        balanced: mangal1.hasDosha === mangal2.hasDosha
+      doshas: {
+        nadiDosha: nadiDosha,
+        bhakootDosha: bhakootDosha,
+        mangalDosha: {
+          person1: mangal1,
+          person2: mangal2,
+          balanced: mangal1.hasDosha === mangal2.hasDosha
+        }
       },
-      guidance: compatibilityGuidance(total, mangal1, mangal2),
-      disclaimer: "Compatibility uses local Ashtakoot-style rules and approximate Moon/Nakshatra calculations."
+      guidance: guidance,
+      disclaimer: "Yeh Ashtakoot Guna Milan classical shastric rules par based hai. Final decision me sampurna kundli milan, family values aur practical compatibility bhi dekhein."
     };
   }
 
@@ -972,56 +2610,6 @@
     };
   }
 
-  function compatibleElement(a, b) {
-    const elementA = SIGN_ELEMENTS[a];
-    const elementB = SIGN_ELEMENTS[b];
-    if (elementA === elementB) return true;
-    return (elementA === "Fire" && elementB === "Air") ||
-      (elementA === "Air" && elementB === "Fire") ||
-      (elementA === "Earth" && elementB === "Water") ||
-      (elementA === "Water" && elementB === "Earth");
-  }
-
-  function compatibleYoni(a, b) {
-    const peaceful = {
-      Horse: ["Elephant", "Cow"],
-      Elephant: ["Horse", "Sheep"],
-      Sheep: ["Elephant", "Cow"],
-      Serpent: ["Monkey", "Deer"],
-      Dog: ["Horse", "Lion"],
-      Cat: ["Cow", "Deer"],
-      Rat: ["Cow", "Monkey"],
-      Cow: ["Horse", "Sheep", "Cat", "Rat"],
-      Buffalo: ["Tiger", "Elephant"],
-      Tiger: ["Buffalo", "Deer"],
-      Deer: ["Cat", "Tiger", "Serpent"],
-      Monkey: ["Rat", "Serpent"],
-      Mongoose: ["Lion"],
-      Lion: ["Dog", "Mongoose"]
-    };
-    return (peaceful[a] || []).indexOf(b) >= 0;
-  }
-
-  function compatibleLords(a, b) {
-    const friends = {
-      Sun: ["Moon", "Mars", "Jupiter"],
-      Moon: ["Sun", "Mercury"],
-      Mars: ["Sun", "Moon", "Jupiter"],
-      Mercury: ["Sun", "Venus"],
-      Jupiter: ["Sun", "Moon", "Mars"],
-      Venus: ["Mercury", "Saturn"],
-      Saturn: ["Mercury", "Venus"]
-    };
-    return (friends[a] || []).indexOf(b) >= 0 || (friends[b] || []).indexOf(a) >= 0;
-  }
-
-  function compatibleGana(a, b) {
-    return (a === "Deva" && b === "Manushya") ||
-      (a === "Manushya" && b === "Deva") ||
-      (a === "Manushya" && b === "Rakshasa") ||
-      (a === "Rakshasa" && b === "Manushya");
-  }
-
   function mangalDosha(chart) {
     const mars = chart.planets.find(function (row) { return row.planet === "Mars"; });
     const doshaHouses = [1, 2, 4, 7, 8, 12];
@@ -1032,25 +2620,6 @@
       level: hasDosha ? ([7, 8].indexOf(mars.house) >= 0 ? "High" : "Moderate") : "Low",
       note: hasDosha ? `Mars house ${mars.house} me hai, isliye matching me balance check zaruri hai.` : "Mars sensitive houses me nahi hai."
     };
-  }
-
-  function compatibilityGuidance(total, mangal1, mangal2) {
-    const lines = [];
-    if (total >= 28) {
-      lines.push("Ashtakoot score strong hai; emotional rhythm aur family compatibility supportive dikh rahi hai.");
-    } else if (total >= 22) {
-      lines.push("Compatibility good hai, lekin communication expectations clearly set karna zaruri rahega.");
-    } else if (total >= 18) {
-      lines.push("Score average hai; practical counselling aur detailed chart review helpful rahega.");
-    } else {
-      lines.push("Score low side par hai; marriage decision me family, values aur long-term expectations carefully discuss karein.");
-    }
-    if (mangal1.hasDosha !== mangal2.hasDosha) {
-      lines.push("Mangal balance uneven hai, remedies aur deeper chart matching recommended hai.");
-    } else if (mangal1.hasDosha && mangal2.hasDosha) {
-      lines.push("Dono charts me Mangal influence hai, jo traditional matching me balance create kar sakta hai.");
-    }
-    return lines;
   }
 
   function askAstrologer(input) {
@@ -1151,6 +2720,116 @@
     };
   }
 
+  function weeklyHoroscope(input) {
+    var sign = normalizeSign(input && input.sign ? input.sign : "Aries");
+    var startDate = input && input.date ? input.date : new Date();
+    var index = SIGN_NAMES.indexOf(sign);
+    var parts = dateParts(startDate);
+    var weekStart = formatDate(parts);
+    var seed = hashSeed(sign + "-week-" + parts.year + "-" + Math.floor((parts.month * 4 + Math.floor(parts.day / 7))));
+
+    var themes = ["career growth", "relationship deepening", "financial awareness", "spiritual growth", "health focus", "learning new skills"];
+    var weekTheme = seededPick(seed, themes);
+    var overallMood = seededPick(seed >> 2, ["optimistic", "cautious", "energetic", "reflective", "productive", "balanced"]);
+
+    var days = [];
+    var dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    for (var d = 0; d < 7; d++) {
+      var daySeed = hashSeed(sign + "-" + weekStart + "-day" + d);
+      var focus = seededPick(daySeed, ["career", "love", "finance", "health", "family", "creativity"]);
+      var energy = seededPick(daySeed >> 3, ["high", "moderate", "low", "steady", "rising"]);
+      days.push({
+        day: dayNames[d],
+        focus: titleCase(focus),
+        energy: energy,
+        tip: seededPick(daySeed >> 5, [
+          "Initiative lene ka din hai",
+          "Patience rakhein, result milega",
+          "Communication pe dhyan dein",
+          "Rest aur recovery important hai",
+          "New opportunity explore karein",
+          "Close ones ke saath time spend karein",
+          "Financial planning ke liye achha din"
+        ])
+      });
+    }
+
+    return {
+      sign: sign,
+      rashi: SIGN_HINDI[index],
+      symbol: SIGN_SYMBOLS[index],
+      weekStart: weekStart,
+      theme: titleCase(weekTheme),
+      overallMood: titleCase(overallMood),
+      summary: sign + " ke liye is hafte " + weekTheme + " par focus rahega. Overall mood " + overallMood + " rahega. Week ke shuru mein energy " + days[0].energy + " rahegi.",
+      days: days,
+      luckyDay: seededPick(seed >> 4, dayNames),
+      luckyColor: seededPick(seed >> 6, ["Saffron", "White", "Green", "Royal Blue", "Silver", "Violet"]),
+      remedy: dailyRemedy(sign)
+    };
+  }
+
+  function monthlyHoroscope(input) {
+    var sign = normalizeSign(input && input.sign ? input.sign : "Aries");
+    var parts = dateParts(input && input.date ? input.date : new Date());
+    var index = SIGN_NAMES.indexOf(sign);
+    var seed = hashSeed(sign + "-month-" + parts.year + "-" + parts.month);
+
+    var keyThemes = [
+      seededPick(seed, ["Career advancement", "Financial stability", "Relationship harmony", "Personal growth"]),
+      seededPick(seed >> 2, ["Health improvement", "Spiritual awakening", "Creative expression", "Academic success"]),
+      seededPick(seed >> 4, ["Travel opportunities", "Family bonding", "Social expansion", "Inner peace"])
+    ];
+
+    var careerOutlook = seededPick(seed >> 3, [
+      "Work mein steady progress dikhegi. Patience rakhein aur consistent efforts dein.",
+      "New opportunities aa sakti hain. Resume ready rakhein aur networking karein.",
+      "Team collaboration se achhe results milenge. Leadership role bhi mil sakta hai.",
+      "Creative projects mein success milegi. Apni ideas confidently present karein."
+    ]);
+
+    var loveOutlook = seededPick(seed >> 5, [
+      "Relationships mein understanding badhegi. Communication honest rakhein.",
+      "Single natives ke liye new connections ke chances hain. Open minded rahein.",
+      "Partner ke saath quality time spend karna zaroori hai is mahine.",
+      "Past misunderstandings resolve ho sakte hain. Forgiveness se shuru karein."
+    ]);
+
+    var financeOutlook = seededPick(seed >> 7, [
+      "Financial planning par focus dein. Impulsive spending avoid karein.",
+      "Unexpected income ke chances hain. Savings bhi badhayein.",
+      "Investment ke liye research zaroor karein. Expert advice lein.",
+      "Monthly budget strictly follow karein. Long-term savings start karein."
+    ]);
+
+    var healthOutlook = seededPick(seed >> 9, [
+      "Regular exercise aur balanced diet se energy level achha rahega.",
+      "Mental health par dhyan dein. Meditation aur yoga helpful hoga.",
+      "Sleep routine fix karein. Late nights avoid karein jahan possible ho.",
+      "Outdoor activities se fresh feel karenge. Nature walks try karein."
+    ]);
+
+    var monthNames = ["January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"];
+
+    return {
+      sign: sign,
+      rashi: SIGN_HINDI[index],
+      symbol: SIGN_SYMBOLS[index],
+      month: monthNames[parts.month - 1],
+      year: parts.year,
+      keyThemes: keyThemes,
+      overview: sign + " ke liye " + monthNames[parts.month - 1] + " " + parts.year + " mein " + keyThemes[0].toLowerCase() + " aur " + keyThemes[1].toLowerCase() + " important rahega.",
+      career: careerOutlook,
+      love: loveOutlook,
+      finance: financeOutlook,
+      health: healthOutlook,
+      luckyDates: [(seed % 20) + 1, ((seed >> 3) % 15) + 10, ((seed >> 6) % 10) + 20],
+      luckyColor: seededPick(seed >> 8, ["Saffron", "White", "Green", "Royal Blue", "Silver", "Violet", "Gold"]),
+      remedy: dailyRemedy(sign)
+    };
+  }
+
   return {
     constants: {
       signs: SIGN_NAMES,
@@ -1161,8 +2840,18 @@
     },
     resolvePlace: resolvePlace,
     makeChart: makeChart,
+    navamsaChart: navamsaChart,
+    horaChart: horaChart,
+    drekkanaChart: drekkanaChart,
+    dashamChart: dashamChart,
+    divisionalCharts: divisionalCharts,
+    detectYogas: detectYogas,
     generateKundli: generateKundli,
+    simpleKundliReading: simpleKundliReading,
+    nameToRashi: nameToRashi,
     dailyHoroscope: dailyHoroscope,
+    weeklyHoroscope: weeklyHoroscope,
+    monthlyHoroscope: monthlyHoroscope,
     panchang: panchang,
     matchmaking: matchmaking,
     askAstrologer: askAstrologer,
