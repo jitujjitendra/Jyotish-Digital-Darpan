@@ -76,6 +76,74 @@
     "Dog", "Monkey", "Mongoose", "Monkey", "Lion", "Horse", "Lion", "Cow", "Elephant"
   ];
 
+  // Classical Nakshatra-to-Varna mapping (Brahmin=4, Kshatriya=3, Vaishya=2, Shudra=1)
+  const NAKSHATRA_VARNA = [
+    "Kshatriya", "Shudra", "Brahmin", "Shudra", "Vaishya", "Shudra",
+    "Vaishya", "Kshatriya", "Shudra", "Kshatriya", "Brahmin", "Kshatriya",
+    "Vaishya", "Vaishya", "Shudra", "Brahmin", "Shudra", "Vaishya",
+    "Shudra", "Brahmin", "Kshatriya", "Shudra", "Vaishya", "Shudra",
+    "Brahmin", "Kshatriya", "Shudra"
+  ];
+
+  // Detailed Yoni mapping with animal and gender for each nakshatra
+  const NAKSHATRA_YONI_DETAILED = [
+    { animal: "Horse", gender: "M" },
+    { animal: "Elephant", gender: "M" },
+    { animal: "Sheep", gender: "F" },
+    { animal: "Serpent", gender: "M" },
+    { animal: "Serpent", gender: "F" },
+    { animal: "Dog", gender: "F" },
+    { animal: "Cat", gender: "F" },
+    { animal: "Sheep", gender: "M" },
+    { animal: "Cat", gender: "M" },
+    { animal: "Rat", gender: "M" },
+    { animal: "Rat", gender: "F" },
+    { animal: "Cow", gender: "M" },
+    { animal: "Buffalo", gender: "F" },
+    { animal: "Tiger", gender: "F" },
+    { animal: "Buffalo", gender: "M" },
+    { animal: "Tiger", gender: "M" },
+    { animal: "Deer", gender: "F" },
+    { animal: "Deer", gender: "M" },
+    { animal: "Dog", gender: "M" },
+    { animal: "Monkey", gender: "M" },
+    { animal: "Mongoose", gender: "M" },
+    { animal: "Monkey", gender: "F" },
+    { animal: "Lion", gender: "F" },
+    { animal: "Horse", gender: "F" },
+    { animal: "Lion", gender: "M" },
+    { animal: "Cow", gender: "F" },
+    { animal: "Elephant", gender: "F" }
+  ];
+
+  // Vashya category for each rashi (sign)
+  const SIGN_VASHYA = [
+    "Chatushpada", "Chatushpada", "Manava", "Jalachara", "Vanachara", "Manava",
+    "Manava", "Keeta", "Chatushpada", "Chatushpada", "Manava", "Jalachara"
+  ];
+
+  // Classical Graha Maitri (planetary friendship) table
+  const GRAHA_MAITRI_TABLE = {
+    Sun:     { friends: ["Moon", "Mars", "Jupiter"], neutrals: ["Mercury"], enemies: ["Venus", "Saturn"] },
+    Moon:    { friends: ["Sun", "Mercury"], neutrals: ["Mars", "Jupiter", "Venus", "Saturn"], enemies: [] },
+    Mars:    { friends: ["Sun", "Moon", "Jupiter"], neutrals: ["Venus", "Saturn"], enemies: ["Mercury"] },
+    Mercury: { friends: ["Sun", "Venus"], neutrals: ["Mars", "Jupiter", "Saturn"], enemies: ["Moon"] },
+    Jupiter: { friends: ["Sun", "Moon", "Mars"], neutrals: ["Saturn"], enemies: ["Mercury", "Venus"] },
+    Venus:   { friends: ["Mercury", "Saturn"], neutrals: ["Mars", "Jupiter"], enemies: ["Sun", "Moon"] },
+    Saturn:  { friends: ["Mercury", "Venus"], neutrals: ["Jupiter"], enemies: ["Sun", "Moon", "Mars"] }
+  };
+
+  // Yoni enemy pairs (sworn enemies)
+  const YONI_ENEMIES = [
+    ["Horse", "Buffalo"],
+    ["Elephant", "Lion"],
+    ["Sheep", "Monkey"],
+    ["Serpent", "Mongoose"],
+    ["Dog", "Deer"],
+    ["Cat", "Rat"],
+    ["Cow", "Tiger"]
+  ];
+
   const DASHA_YEARS = {
     Ketu: 7,
     Venus: 20,
@@ -928,9 +996,123 @@
     return "Routine work, prayer aur mindful decisions ke liye balanced din hai.";
   }
 
-  function varnaScore(signIndexValue) {
-    const groups = [3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4];
-    return groups[signIndexValue];
+  // --- Classical Ashtakoot Guna Milan Helper Functions ---
+
+  function varnaValue(nakIndex) {
+    const map = { Brahmin: 4, Kshatriya: 3, Vaishya: 2, Shudra: 1 };
+    return map[NAKSHATRA_VARNA[nakIndex]] || 1;
+  }
+
+  function calcVarna(boyNakIndex, girlNakIndex) {
+    var boyVal = varnaValue(boyNakIndex);
+    var girlVal = varnaValue(girlNakIndex);
+    var scored = boyVal >= girlVal ? 1 : 0;
+    return {
+      name: "Varna", nameHindi: "\u0935\u0930\u094D\u0923", maxPoints: 1, scored: scored,
+      description: "Spiritual/intellectual compatibility",
+      detail: "Boy: " + NAKSHATRA_VARNA[boyNakIndex] + " (" + boyVal + "), Girl: " + NAKSHATRA_VARNA[girlNakIndex] + " (" + girlVal + ")" + (scored ? " - Boy >= Girl" : " - Boy < Girl")
+    };
+  }
+
+  function calcVashya(boySignIndex, girlSignIndex) {
+    var boyV = SIGN_VASHYA[boySignIndex];
+    var girlV = SIGN_VASHYA[girlSignIndex];
+    var scored = 0;
+    var rule = "";
+    if (boyV === girlV) {
+      scored = 2; rule = "Same Vashya category";
+    } else if ((boyV === "Manava" && girlV === "Chatushpada") || (boyV === "Chatushpada" && girlV === "Manava")) {
+      scored = 1; rule = "Manava-Chatushpada partial control";
+    } else if ((boyV === "Chatushpada" && girlV === "Jalachara") || (boyV === "Jalachara" && girlV === "Chatushpada")) {
+      scored = 0.5; rule = "Chatushpada-Jalachara minimal affinity";
+    } else {
+      scored = 0; rule = "No Vashya affinity";
+    }
+    return {
+      name: "Vashya", nameHindi: "\u0935\u0936\u094D\u092F", maxPoints: 2, scored: scored,
+      description: "Dominance/mutual attraction",
+      detail: "Boy: " + SIGN_NAMES[boySignIndex] + " (" + boyV + "), Girl: " + SIGN_NAMES[girlSignIndex] + " (" + girlV + ") - " + rule
+    };
+  }
+
+  function isTaraAuspicious(fromNakIndex, toNakIndex) {
+    var count = ((toNakIndex - fromNakIndex + 27) % 27) + 1;
+    var remainder = count % 9;
+    if (remainder === 0) remainder = 9;
+    return [3, 5, 7].indexOf(remainder) === -1;
+  }
+
+  function calcTara(boyNakIndex, girlNakIndex) {
+    var girlToBoy = isTaraAuspicious(girlNakIndex, boyNakIndex);
+    var boyToGirl = isTaraAuspicious(boyNakIndex, girlNakIndex);
+    var scored = 0;
+    var rule = "";
+    if (girlToBoy && boyToGirl) {
+      scored = 3; rule = "Both directions auspicious";
+    } else if (girlToBoy || boyToGirl) {
+      scored = 1.5; rule = "One direction auspicious";
+    } else {
+      scored = 0; rule = "Both directions inauspicious";
+    }
+    return {
+      name: "Tara", nameHindi: "\u0924\u093E\u0930\u093E", maxPoints: 3, scored: scored,
+      description: "Birth star compatibility (Dina Tara)",
+      detail: "Girl-to-Boy: " + (girlToBoy ? "auspicious" : "inauspicious") + ", Boy-to-Girl: " + (boyToGirl ? "auspicious" : "inauspicious") + " - " + rule
+    };
+  }
+
+  function areYoniEnemies(a, b) {
+    for (var i = 0; i < YONI_ENEMIES.length; i++) {
+      if ((YONI_ENEMIES[i][0] === a && YONI_ENEMIES[i][1] === b) ||
+          (YONI_ENEMIES[i][1] === a && YONI_ENEMIES[i][0] === b)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function calcYoni(boyNakIndex, girlNakIndex) {
+    var boyYoni = NAKSHATRA_YONI_DETAILED[boyNakIndex];
+    var girlYoni = NAKSHATRA_YONI_DETAILED[girlNakIndex];
+    var scored = 0;
+    var rule = "";
+    if (boyYoni.animal === girlYoni.animal) {
+      if (boyYoni.gender !== girlYoni.gender) {
+        scored = 4; rule = "Same animal, opposite gender (perfect pair)";
+      } else {
+        scored = 3; rule = "Same animal, same gender";
+      }
+    } else if (areYoniEnemies(boyYoni.animal, girlYoni.animal)) {
+      scored = 0; rule = "Enemy animals (" + boyYoni.animal + " vs " + girlYoni.animal + ")";
+    } else {
+      // Classify as friendly (2) or neutral (1) using a simplified approach
+      // Friendly: animals not in the enemy list and not completely unrelated
+      scored = 2; rule = "Friendly/neutral animals";
+      // Use a more nuanced check: if neither is an enemy of the other, 
+      // check for known friendly combinations
+      var friendlyPairs = [
+        ["Cow", "Buffalo"], ["Horse", "Deer"], ["Elephant", "Sheep"],
+        ["Monkey", "Lion"], ["Dog", "Cat"], ["Serpent", "Deer"]
+      ];
+      var isFriendly = false;
+      for (var i = 0; i < friendlyPairs.length; i++) {
+        if ((friendlyPairs[i][0] === boyYoni.animal && friendlyPairs[i][1] === girlYoni.animal) ||
+            (friendlyPairs[i][1] === boyYoni.animal && friendlyPairs[i][0] === girlYoni.animal)) {
+          isFriendly = true;
+          break;
+        }
+      }
+      if (isFriendly) {
+        scored = 2; rule = "Friendly animals (" + boyYoni.animal + " & " + girlYoni.animal + ")";
+      } else {
+        scored = 1; rule = "Neutral animals (" + boyYoni.animal + " & " + girlYoni.animal + ")";
+      }
+    }
+    return {
+      name: "Yoni", nameHindi: "\u092F\u094B\u0928\u093F", maxPoints: 4, scored: scored,
+      description: "Sexual/physical compatibility",
+      detail: "Boy: " + boyYoni.animal + "(" + boyYoni.gender + "), Girl: " + girlYoni.animal + "(" + girlYoni.gender + ") - " + rule
+    };
   }
 
   function moonProfile(input) {
@@ -945,49 +1127,237 @@
     };
   }
 
-  function matchmaking(input) {
-    const p1 = moonProfile(input && input.person1 ? input.person1 : {});
-    const p2 = moonProfile(input && input.person2 ? input.person2 : {});
-    const taraDistance = ((p2.nakIndex - p1.nakIndex + 27) % 27) + 1;
-    const reverseTara = ((p1.nakIndex - p2.nakIndex + 27) % 27) + 1;
-    const taraGood = [1, 3, 5, 7].indexOf(taraDistance % 9) === -1 && [1, 3, 5, 7].indexOf(reverseTara % 9) === -1;
-    const signDistance = ((p2.signIndex - p1.signIndex + 12) % 12) + 1;
-    const reverseSignDistance = ((p1.signIndex - p2.signIndex + 12) % 12) + 1;
-    const sameLord = SIGN_LORDS[p1.signIndex] === SIGN_LORDS[p2.signIndex];
-    const sameYoni = p1.nak.yoni === p2.nak.yoni;
-    const sameNadi = p1.nak.nadi === p2.nak.nadi;
-    const sameGana = p1.nak.gana === p2.nak.gana;
-    const bhakootGood = ["2-12", "5-9", "6-8"].indexOf(`${signDistance}-${reverseSignDistance}`) === -1;
-    const scores = {
-      varna: varnaScore(p2.signIndex) >= varnaScore(p1.signIndex) ? 1 : 0,
-      vashya: compatibleElement(p1.signIndex, p2.signIndex) ? 2 : 1,
-      tara: taraGood ? 3 : 1.5,
-      yoni: sameYoni ? 4 : compatibleYoni(p1.nak.yoni, p2.nak.yoni) ? 3 : 1,
-      grahaMaitri: sameLord ? 5 : compatibleLords(SIGN_LORDS[p1.signIndex], SIGN_LORDS[p2.signIndex]) ? 4 : 2,
-      gana: sameGana ? 6 : compatibleGana(p1.nak.gana, p2.nak.gana) ? 4 : 2,
-      bhakoot: bhakootGood ? 7 : 0,
-      nadi: sameNadi ? 0 : 8
+  function getRelationship(planetA, planetB) {
+    if (planetA === planetB) return "friend";
+    var entry = GRAHA_MAITRI_TABLE[planetA];
+    if (!entry) return "neutral";
+    if (entry.friends.indexOf(planetB) >= 0) return "friend";
+    if (entry.enemies.indexOf(planetB) >= 0) return "enemy";
+    return "neutral";
+  }
+
+  function calcGrahaMaitri(boySignIndex, girlSignIndex) {
+    var lordBoy = SIGN_LORDS[boySignIndex];
+    var lordGirl = SIGN_LORDS[girlSignIndex];
+    var scored = 0;
+    var rule = "";
+    if (lordBoy === lordGirl) {
+      scored = 5; rule = "Same lord (" + lordBoy + ")";
+    } else {
+      var relAtoB = getRelationship(lordBoy, lordGirl);
+      var relBtoA = getRelationship(lordGirl, lordBoy);
+      if (relAtoB === "friend" && relBtoA === "friend") {
+        scored = 5; rule = "Mutual friends (" + lordBoy + " & " + lordGirl + ")";
+      } else if ((relAtoB === "friend" && relBtoA === "neutral") || (relAtoB === "neutral" && relBtoA === "friend")) {
+        scored = 4; rule = "One friend, one neutral (" + lordBoy + " & " + lordGirl + ")";
+      } else if (relAtoB === "neutral" && relBtoA === "neutral") {
+        scored = 3; rule = "Both neutral (" + lordBoy + " & " + lordGirl + ")";
+      } else if ((relAtoB === "friend" && relBtoA === "enemy") || (relAtoB === "enemy" && relBtoA === "friend")) {
+        scored = 1; rule = "One friend, one enemy (" + lordBoy + " & " + lordGirl + ")";
+      } else if ((relAtoB === "neutral" && relBtoA === "enemy") || (relAtoB === "enemy" && relBtoA === "neutral")) {
+        scored = 0.5; rule = "One neutral, one enemy (" + lordBoy + " & " + lordGirl + ")";
+      } else {
+        scored = 0; rule = "Mutual enemies (" + lordBoy + " & " + lordGirl + ")";
+      }
+    }
+    return {
+      name: "Graha Maitri", nameHindi: "\u0917\u094D\u0930\u0939 \u092E\u0948\u0924\u094D\u0930\u0940", maxPoints: 5, scored: scored,
+      description: "Planetary lord friendship",
+      detail: "Boy lord: " + lordBoy + ", Girl lord: " + lordGirl + " - " + rule
     };
-    const total = Object.keys(scores).reduce(function (sum, key) { return sum + scores[key]; }, 0);
-    const mangal1 = mangalDosha(p1.chart);
-    const mangal2 = mangalDosha(p2.chart);
+  }
+
+  function calcGana(boyNakIndex, girlNakIndex) {
+    var boyGana = NAKSHATRA_GANA[boyNakIndex];
+    var girlGana = NAKSHATRA_GANA[girlNakIndex];
+    // Classical grid: rows=Boy (Deva/Manushya/Rakshasa), cols=Girl (Deva/Manushya/Rakshasa)
+    var ganaGrid = {
+      "Deva-Deva": 6, "Deva-Manushya": 6, "Deva-Rakshasa": 0,
+      "Manushya-Deva": 5, "Manushya-Manushya": 6, "Manushya-Rakshasa": 0,
+      "Rakshasa-Deva": 1, "Rakshasa-Manushya": 0, "Rakshasa-Rakshasa": 6
+    };
+    var key = boyGana + "-" + girlGana;
+    var scored = ganaGrid[key] !== undefined ? ganaGrid[key] : 0;
+    return {
+      name: "Gana", nameHindi: "\u0917\u0923", maxPoints: 6, scored: scored,
+      description: "Temperament compatibility",
+      detail: "Boy: " + boyGana + ", Girl: " + girlGana + " - Score: " + scored + "/6"
+    };
+  }
+
+  function calcBhakoot(boySignIndex, girlSignIndex) {
+    var distBoyToGirl = ((girlSignIndex - boySignIndex + 12) % 12) + 1;
+    var distGirlToBoy = ((boySignIndex - girlSignIndex + 12) % 12) + 1;
+    var inauspiciousPairs = [[2,12],[6,8],[5,9]];
+    var isBad = false;
+    for (var i = 0; i < inauspiciousPairs.length; i++) {
+      var pair = inauspiciousPairs[i];
+      if ((distBoyToGirl === pair[0] && distGirlToBoy === pair[1]) ||
+          (distBoyToGirl === pair[1] && distGirlToBoy === pair[0])) {
+        isBad = true;
+        break;
+      }
+    }
+    var doshaPresent = isBad;
+    var doshaCancelled = false;
+    var scored = 7;
+    var rule = "";
+    if (isBad) {
+      // Check if lords are same or friends (cancellation)
+      var lordBoy = SIGN_LORDS[boySignIndex];
+      var lordGirl = SIGN_LORDS[girlSignIndex];
+      if (lordBoy === lordGirl) {
+        doshaCancelled = true;
+        scored = 7;
+        rule = "Bhakoot dosha (" + distBoyToGirl + "/" + distGirlToBoy + ") cancelled - same lords (" + lordBoy + ")";
+      } else {
+        var rel1 = getRelationship(lordBoy, lordGirl);
+        var rel2 = getRelationship(lordGirl, lordBoy);
+        if (rel1 === "friend" || rel2 === "friend") {
+          doshaCancelled = true;
+          scored = 7;
+          rule = "Bhakoot dosha (" + distBoyToGirl + "/" + distGirlToBoy + ") cancelled - lords are friends (" + lordBoy + " & " + lordGirl + ")";
+        } else {
+          scored = 0;
+          rule = "Bhakoot dosha (" + distBoyToGirl + "/" + distGirlToBoy + ") - lords not friendly";
+        }
+      }
+    } else {
+      rule = "No Bhakoot dosha (distance: " + distBoyToGirl + "/" + distGirlToBoy + ")";
+    }
+    return {
+      koota: {
+        name: "Bhakoot", nameHindi: "\u092D\u0915\u0942\u091F", maxPoints: 7, scored: scored,
+        description: "Rashi lord compatibility (health/wealth)",
+        detail: rule
+      },
+      doshaPresent: doshaPresent,
+      doshaCancelled: doshaCancelled,
+      reason: rule
+    };
+  }
+
+  function calcNadi(boyNakIndex, girlNakIndex, boySigIdx, girlSigIdx, boyPada, girlPada) {
+    var boyNadi = NAKSHATRA_NADI[boyNakIndex];
+    var girlNadi = NAKSHATRA_NADI[girlNakIndex];
+    var doshaPresent = (boyNadi === girlNadi);
+    var doshaCancelled = false;
+    var scored = 8;
+    var rule = "";
+    if (doshaPresent) {
+      // Check exception: same nakshatra different pada
+      if (boyNakIndex === girlNakIndex && boyPada !== girlPada) {
+        doshaCancelled = true;
+        scored = 8;
+        rule = "Same Nadi (" + boyNadi + ") but same nakshatra different pada - dosha cancelled";
+      } else if (boySigIdx === girlSigIdx && boyNakIndex !== girlNakIndex) {
+        // Same rashi but different nakshatra
+        doshaCancelled = true;
+        scored = 8;
+        rule = "Same Nadi (" + boyNadi + ") but same rashi different nakshatra - dosha cancelled";
+      } else {
+        scored = 0;
+        rule = "Nadi Dosha - both have " + boyNadi + " nadi (inauspicious for progeny)";
+      }
+    } else {
+      rule = "Different Nadi (Boy: " + boyNadi + ", Girl: " + girlNadi + ") - auspicious";
+    }
+    return {
+      koota: {
+        name: "Nadi", nameHindi: "\u0928\u093E\u0921\u0940", maxPoints: 8, scored: scored,
+        description: "Health and genetic compatibility (most important)",
+        detail: rule
+      },
+      doshaPresent: doshaPresent,
+      doshaCancelled: doshaCancelled,
+      reason: rule
+    };
+  }
+
+  function matchmakingGuidance(total, nadiDosha, bhakootDosha, mangal1, mangal2) {
+    var lines = [];
+    if (total >= 28) {
+      lines.push("Ashtakoot score uttam (excellent) hai. Emotional, physical aur family compatibility bahut achhi hai.");
+    } else if (total >= 22) {
+      lines.push("Ashtakoot score shubh (good) hai. Compatibility supportive hai, par communication aur mutual respect zaruri hai.");
+    } else if (total >= 18) {
+      lines.push("Score madhyam (average) hai. Vivah se pehle detailed chart analysis, counselling aur remedies par vichar karein.");
+    } else {
+      lines.push("Score kam hai. Marriage decision me family values, practical goals aur professional guidance carefully consider karein.");
+    }
+    if (nadiDosha.present && !nadiDosha.cancelled) {
+      lines.push("Nadi Dosha present hai - santaan (progeny) aur health ke liye remedies aur deeper analysis recommended hai.");
+    }
+    if (bhakootDosha.present && !bhakootDosha.cancelled) {
+      lines.push("Bhakoot Dosha present hai - wealth aur health challenges possible hain, remedies se shanti milegi.");
+    }
+    if (mangal1.hasDosha !== mangal2.hasDosha) {
+      lines.push("Mangal Dosha imbalance hai - ek chart me Manglik aur dusre me nahi. Remedies aur matching check zaruri hai.");
+    } else if (mangal1.hasDosha && mangal2.hasDosha) {
+      lines.push("Dono charts me Mangal Dosha hai, jo traditionally ek dusre ko cancel karta hai.");
+    }
+    return lines;
+  }
+
+  function matchmaking(input) {
+    var p1 = moonProfile(input && input.person1 ? input.person1 : {});
+    var p2 = moonProfile(input && input.person2 ? input.person2 : {});
+
+    // Calculate all 8 kootas (Convention: person1 = Boy, person2 = Girl)
+    var varna = calcVarna(p1.nakIndex, p2.nakIndex);
+    var vashya = calcVashya(p1.signIndex, p2.signIndex);
+    var tara = calcTara(p1.nakIndex, p2.nakIndex);
+    var yoni = calcYoni(p1.nakIndex, p2.nakIndex);
+    var grahaMaitri = calcGrahaMaitri(p1.signIndex, p2.signIndex);
+    var gana = calcGana(p1.nakIndex, p2.nakIndex);
+    var bhakootResult = calcBhakoot(p1.signIndex, p2.signIndex);
+    var nadiResult = calcNadi(p1.nakIndex, p2.nakIndex, p1.signIndex, p2.signIndex, p1.nak.pada, p2.nak.pada);
+
+    var kootas = [varna, vashya, tara, yoni, grahaMaitri, gana, bhakootResult.koota, nadiResult.koota];
+    var total = 0;
+    for (var i = 0; i < kootas.length; i++) {
+      total += kootas[i].scored;
+    }
+    total = Number(total.toFixed(1));
+    var percentage = Number(((total / 36) * 100).toFixed(1));
+
+    var verdict = "";
+    var verdictHindi = "";
+    if (total >= 28) { verdict = "Uttam (Excellent)"; verdictHindi = "\u0909\u0924\u094D\u0924\u092E"; }
+    else if (total >= 22) { verdict = "Good (Shubh)"; verdictHindi = "\u0936\u0941\u092D"; }
+    else if (total >= 18) { verdict = "Madhyam (Average)"; verdictHindi = "\u092E\u0927\u094D\u092F\u092E"; }
+    else { verdict = "Ashubh (Unfavorable - needs remedies)"; verdictHindi = "\u0905\u0936\u0941\u092D"; }
+
+    var mangal1 = mangalDosha(p1.chart);
+    var mangal2 = mangalDosha(p2.chart);
+
+    var nadiDosha = { present: nadiResult.doshaPresent, cancelled: nadiResult.doshaCancelled, reason: nadiResult.reason };
+    var bhakootDosha = { present: bhakootResult.doshaPresent, cancelled: bhakootResult.doshaCancelled, reason: bhakootResult.reason };
+
+    var guidance = matchmakingGuidance(total, nadiDosha, bhakootDosha, mangal1, mangal2);
 
     return {
       person1: compactBirthProfile(p1.chart),
       person2: compactBirthProfile(p2.chart),
       ashtakoot: {
-        scores: scores,
-        total: Number(total.toFixed(1)),
+        kootas: kootas,
+        total: total,
         maximum: 36,
-        verdict: total >= 28 ? "Excellent compatibility" : total >= 22 ? "Good compatibility" : total >= 18 ? "Average compatibility" : "Needs careful guidance"
+        percentage: percentage,
+        verdict: verdict,
+        verdictHindi: verdictHindi
       },
-      mangalDosha: {
-        person1: mangal1,
-        person2: mangal2,
-        balanced: mangal1.hasDosha === mangal2.hasDosha
+      doshas: {
+        nadiDosha: nadiDosha,
+        bhakootDosha: bhakootDosha,
+        mangalDosha: {
+          person1: mangal1,
+          person2: mangal2,
+          balanced: mangal1.hasDosha === mangal2.hasDosha
+        }
       },
-      guidance: compatibilityGuidance(total, mangal1, mangal2),
-      disclaimer: "Compatibility uses local Ashtakoot-style rules and approximate Moon/Nakshatra calculations."
+      guidance: guidance,
+      disclaimer: "Yeh Ashtakoot Guna Milan classical shastric rules par based hai. Final decision me sampurna kundli milan, family values aur practical compatibility bhi dekhein."
     };
   }
 
@@ -1001,56 +1371,6 @@
     };
   }
 
-  function compatibleElement(a, b) {
-    const elementA = SIGN_ELEMENTS[a];
-    const elementB = SIGN_ELEMENTS[b];
-    if (elementA === elementB) return true;
-    return (elementA === "Fire" && elementB === "Air") ||
-      (elementA === "Air" && elementB === "Fire") ||
-      (elementA === "Earth" && elementB === "Water") ||
-      (elementA === "Water" && elementB === "Earth");
-  }
-
-  function compatibleYoni(a, b) {
-    const peaceful = {
-      Horse: ["Elephant", "Cow"],
-      Elephant: ["Horse", "Sheep"],
-      Sheep: ["Elephant", "Cow"],
-      Serpent: ["Monkey", "Deer"],
-      Dog: ["Horse", "Lion"],
-      Cat: ["Cow", "Deer"],
-      Rat: ["Cow", "Monkey"],
-      Cow: ["Horse", "Sheep", "Cat", "Rat"],
-      Buffalo: ["Tiger", "Elephant"],
-      Tiger: ["Buffalo", "Deer"],
-      Deer: ["Cat", "Tiger", "Serpent"],
-      Monkey: ["Rat", "Serpent"],
-      Mongoose: ["Lion"],
-      Lion: ["Dog", "Mongoose"]
-    };
-    return (peaceful[a] || []).indexOf(b) >= 0;
-  }
-
-  function compatibleLords(a, b) {
-    const friends = {
-      Sun: ["Moon", "Mars", "Jupiter"],
-      Moon: ["Sun", "Mercury"],
-      Mars: ["Sun", "Moon", "Jupiter"],
-      Mercury: ["Sun", "Venus"],
-      Jupiter: ["Sun", "Moon", "Mars"],
-      Venus: ["Mercury", "Saturn"],
-      Saturn: ["Mercury", "Venus"]
-    };
-    return (friends[a] || []).indexOf(b) >= 0 || (friends[b] || []).indexOf(a) >= 0;
-  }
-
-  function compatibleGana(a, b) {
-    return (a === "Deva" && b === "Manushya") ||
-      (a === "Manushya" && b === "Deva") ||
-      (a === "Manushya" && b === "Rakshasa") ||
-      (a === "Rakshasa" && b === "Manushya");
-  }
-
   function mangalDosha(chart) {
     const mars = chart.planets.find(function (row) { return row.planet === "Mars"; });
     const doshaHouses = [1, 2, 4, 7, 8, 12];
@@ -1061,25 +1381,6 @@
       level: hasDosha ? ([7, 8].indexOf(mars.house) >= 0 ? "High" : "Moderate") : "Low",
       note: hasDosha ? `Mars house ${mars.house} me hai, isliye matching me balance check zaruri hai.` : "Mars sensitive houses me nahi hai."
     };
-  }
-
-  function compatibilityGuidance(total, mangal1, mangal2) {
-    const lines = [];
-    if (total >= 28) {
-      lines.push("Ashtakoot score strong hai; emotional rhythm aur family compatibility supportive dikh rahi hai.");
-    } else if (total >= 22) {
-      lines.push("Compatibility good hai, lekin communication expectations clearly set karna zaruri rahega.");
-    } else if (total >= 18) {
-      lines.push("Score average hai; practical counselling aur detailed chart review helpful rahega.");
-    } else {
-      lines.push("Score low side par hai; marriage decision me family, values aur long-term expectations carefully discuss karein.");
-    }
-    if (mangal1.hasDosha !== mangal2.hasDosha) {
-      lines.push("Mangal balance uneven hai, remedies aur deeper chart matching recommended hai.");
-    } else if (mangal1.hasDosha && mangal2.hasDosha) {
-      lines.push("Dono charts me Mangal influence hai, jo traditional matching me balance create kar sakta hai.");
-    }
-    return lines;
   }
 
   function askAstrologer(input) {

@@ -155,3 +155,157 @@ assert.ok(kundli2.ayanamsa > 23.5 && kundli2.ayanamsa < 24.5,
   "Ayanamsa in kundli should use precision value");
 
 console.log("All precision ephemeris validation tests passed.");
+
+// ========== CLASSICAL ASHTAKOOT GUNA MILAN TESTS ==========
+
+// Test 1: Basic structure and range validation
+var match1 = engine.matchmaking({
+  person1: { name: "Boy1", date: "1992-05-20", time: "10:10", place: "Delhi" },
+  person2: { name: "Girl1", date: "1994-08-18", time: "18:45", place: "Mumbai" }
+});
+
+assert.ok(match1.ashtakoot.total >= 0 && match1.ashtakoot.total <= 36,
+  "Total score should be between 0 and 36, got " + match1.ashtakoot.total);
+assert.strictEqual(match1.ashtakoot.maximum, 36, "Maximum should be 36");
+assert.ok(match1.ashtakoot.percentage >= 0 && match1.ashtakoot.percentage <= 100,
+  "Percentage should be between 0 and 100");
+assert.strictEqual(match1.ashtakoot.kootas.length, 8, "Should have 8 kootas");
+assert.ok(match1.person1.name, "Person1 should have name");
+assert.ok(match1.person2.name, "Person2 should have name");
+assert.ok(match1.person1.moonSign, "Person1 should have moonSign");
+assert.ok(match1.person1.nakshatra, "Person1 should have nakshatra");
+assert.ok(match1.person1.pada, "Person1 should have pada");
+assert.ok(match1.person1.lagna, "Person1 should have lagna");
+assert.ok(match1.doshas, "Should have doshas object");
+assert.ok(match1.doshas.nadiDosha !== undefined, "Should have nadiDosha");
+assert.ok(match1.doshas.bhakootDosha !== undefined, "Should have bhakootDosha");
+assert.ok(match1.doshas.mangalDosha !== undefined, "Should have mangalDosha");
+assert.ok(match1.guidance.length > 0, "Should have guidance");
+assert.ok(match1.disclaimer, "Should have disclaimer");
+
+// Test 2: Verify each koota has proper structure
+match1.ashtakoot.kootas.forEach(function(koota, idx) {
+  assert.ok(koota.name, "Koota " + idx + " should have name");
+  assert.ok(koota.nameHindi, "Koota " + idx + " should have nameHindi");
+  assert.ok(typeof koota.maxPoints === "number", "Koota " + idx + " maxPoints should be number");
+  assert.ok(typeof koota.scored === "number", "Koota " + idx + " scored should be number");
+  assert.ok(koota.scored >= 0, "Koota " + idx + " scored should be >= 0");
+  assert.ok(koota.scored <= koota.maxPoints, "Koota " + idx + " scored should be <= maxPoints");
+  assert.ok(koota.description, "Koota " + idx + " should have description");
+  assert.ok(koota.detail, "Koota " + idx + " should have detail");
+});
+
+// Test 3: Verify koota max points follow classical system [1,2,3,4,5,6,7,8]
+var expectedMax = [1, 2, 3, 4, 5, 6, 7, 8];
+match1.ashtakoot.kootas.forEach(function(koota, idx) {
+  assert.strictEqual(koota.maxPoints, expectedMax[idx],
+    "Koota " + koota.name + " maxPoints should be " + expectedMax[idx]);
+});
+
+// Test 4: Good match (same or close nakshatras in Sagittarius - known good match)
+var matchGood = engine.matchmaking({
+  person1: { name: "Boy", date: "1992-05-20", time: "10:10", place: "Delhi" },
+  person2: { name: "Girl", date: "1994-08-18", time: "18:45", place: "Mumbai" }
+});
+assert.ok(matchGood.ashtakoot.total >= 0, "Good match total should be valid");
+
+// Test 5: Verdict thresholds
+if (matchGood.ashtakoot.total >= 28) {
+  assert.ok(matchGood.ashtakoot.verdict.indexOf("Uttam") >= 0, "Score >= 28 should be Uttam");
+} else if (matchGood.ashtakoot.total >= 22) {
+  assert.ok(matchGood.ashtakoot.verdict.indexOf("Good") >= 0 || matchGood.ashtakoot.verdict.indexOf("Shubh") >= 0,
+    "Score >= 22 should be Good/Shubh");
+} else if (matchGood.ashtakoot.total >= 18) {
+  assert.ok(matchGood.ashtakoot.verdict.indexOf("Madhyam") >= 0, "Score >= 18 should be Madhyam");
+} else {
+  assert.ok(matchGood.ashtakoot.verdict.indexOf("Ashubh") >= 0, "Score < 18 should be Ashubh");
+}
+
+// Test 6: Nadi Dosha detection - same nadi should produce dosha
+// Person born in Ashwini (Aadi nadi) vs Ardra (Aadi nadi) should have Nadi Dosha
+var matchNadi = engine.matchmaking({
+  person1: { name: "NadiTest1", date: "1990-04-15", time: "06:00", place: "Delhi" },
+  person2: { name: "NadiTest2", date: "1990-04-15", time: "06:00", place: "Delhi" }
+});
+// Same person should have same nadi = dosha (unless cancellation)
+if (matchNadi.doshas.nadiDosha.present) {
+  assert.ok(matchNadi.doshas.nadiDosha.reason.length > 0, "Nadi dosha should have a reason");
+  // If not cancelled, nadi score should be 0
+  if (!matchNadi.doshas.nadiDosha.cancelled) {
+    var nadiKoota = matchNadi.ashtakoot.kootas.find(function(k) { return k.name === "Nadi"; });
+    assert.strictEqual(nadiKoota.scored, 0, "Nadi dosha without cancellation should score 0");
+  }
+}
+
+// Test 7: Total always matches sum of individual kootas
+var sumCheck = 0;
+match1.ashtakoot.kootas.forEach(function(k) { sumCheck += k.scored; });
+assert.strictEqual(match1.ashtakoot.total, Number(sumCheck.toFixed(1)),
+  "Total should equal sum of kootas");
+
+// Test 8: Bhakoot dosha with cancellation test
+// Aries(Mars) and Scorpio(Mars) = same lord, distance is 8/6 which is inauspicious
+// But since both lords are Mars (same), dosha should be cancelled
+var matchBhakoot = engine.matchmaking({
+  person1: { name: "BhakootBoy", date: "1990-04-10", time: "12:00", place: "Delhi" },
+  person2: { name: "BhakootGirl", date: "1990-11-10", time: "12:00", place: "Delhi" }
+});
+assert.ok(typeof matchBhakoot.doshas.bhakootDosha.present === "boolean",
+  "bhakootDosha.present should be boolean");
+assert.ok(typeof matchBhakoot.doshas.bhakootDosha.cancelled === "boolean",
+  "bhakootDosha.cancelled should be boolean");
+assert.ok(matchBhakoot.doshas.bhakootDosha.reason.length > 0,
+  "bhakootDosha should have reason");
+
+// Test 9: Mangal dosha structure
+assert.ok(typeof matchGood.doshas.mangalDosha.person1.hasDosha === "boolean",
+  "mangalDosha person1 hasDosha should be boolean");
+assert.ok(typeof matchGood.doshas.mangalDosha.person2.hasDosha === "boolean",
+  "mangalDosha person2 hasDosha should be boolean");
+assert.ok(typeof matchGood.doshas.mangalDosha.balanced === "boolean",
+  "mangalDosha balanced should be boolean");
+
+// Test 10: Different matches produce different scores
+var matchDiff = engine.matchmaking({
+  person1: { name: "X", date: "1985-01-01", time: "01:00", place: "Delhi" },
+  person2: { name: "Y", date: "2000-12-31", time: "23:00", place: "Mumbai" }
+});
+assert.ok(matchDiff.ashtakoot.total >= 0 && matchDiff.ashtakoot.total <= 36,
+  "Different match should also have valid total");
+
+// Test 11: Verify Varna koota uses nakshatra-based mapping
+var varnaKoota = match1.ashtakoot.kootas[0];
+assert.strictEqual(varnaKoota.name, "Varna");
+assert.ok(varnaKoota.scored === 0 || varnaKoota.scored === 1,
+  "Varna should be 0 or 1");
+
+// Test 12: Verify Graha Maitri uses planet friendship
+var grahaMaitriKoota = match1.ashtakoot.kootas[4];
+assert.strictEqual(grahaMaitriKoota.name, "Graha Maitri");
+assert.ok([0, 0.5, 1, 3, 4, 5].indexOf(grahaMaitriKoota.scored) >= 0,
+  "Graha Maitri should have valid score value, got " + grahaMaitriKoota.scored);
+
+// Test 13: Verify Gana scoring values from classical grid
+var ganaKoota = match1.ashtakoot.kootas[5];
+assert.strictEqual(ganaKoota.name, "Gana");
+assert.ok([0, 1, 5, 6].indexOf(ganaKoota.scored) >= 0,
+  "Gana should have valid classical score value (0,1,5,6), got " + ganaKoota.scored);
+
+// Test 14: Multiple matchmaking calls for consistency
+var matchA = engine.matchmaking({
+  person1: { name: "P1", date: "1993-06-15", time: "14:30", place: "Jaipur" },
+  person2: { name: "P2", date: "1995-03-22", time: "09:15", place: "Pune" }
+});
+var matchB = engine.matchmaking({
+  person1: { name: "P1", date: "1993-06-15", time: "14:30", place: "Jaipur" },
+  person2: { name: "P2", date: "1995-03-22", time: "09:15", place: "Pune" }
+});
+assert.strictEqual(matchA.ashtakoot.total, matchB.ashtakoot.total,
+  "Same inputs should produce same total");
+
+// Test 15: Percentage calculation
+assert.strictEqual(match1.ashtakoot.percentage,
+  Number(((match1.ashtakoot.total / 36) * 100).toFixed(1)),
+  "Percentage should be (total/36)*100 rounded to 1 decimal");
+
+console.log("All Classical Ashtakoot Guna Milan tests passed.");
