@@ -7,6 +7,23 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
+  // Detect precision ephemeris module (loaded separately)
+  var _precisionEphemeris = null;
+  function getPrecisionEphemeris() {
+    if (_precisionEphemeris) return _precisionEphemeris;
+    if (typeof PrecisionEphemeris !== "undefined") {
+      _precisionEphemeris = PrecisionEphemeris;
+      return _precisionEphemeris;
+    }
+    if (typeof module === "object" && module.exports) {
+      try {
+        _precisionEphemeris = require("./precision-ephemeris");
+        return _precisionEphemeris;
+      } catch (e) { /* precision module not available */ }
+    }
+    return null;
+  }
+
   const SIGN_NAMES = [
     "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
     "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
@@ -427,6 +444,11 @@
   }
 
   function ayanamsa(jd) {
+    var pe = getPrecisionEphemeris();
+    if (pe && pe.precisionAyanamsa) {
+      return pe.precisionAyanamsa(jd);
+    }
+    // Fallback: simple linear approximation
     const year = 2000 + (jd - 2451545.0) / 365.2425;
     return 23.85675 + 0.013968 * (year - 2000);
   }
@@ -470,6 +492,13 @@
   }
 
   function planetaryLongitudes(jd) {
+    // Use precision ephemeris if available
+    var pe = getPrecisionEphemeris();
+    if (pe && pe.precisionLongitudes) {
+      return pe.precisionLongitudes(jd);
+    }
+
+    // Fallback: approximate calculations
     const d = jd - 2451545.0;
     const t = d / 36525;
     const lahiri = ayanamsa(jd);
